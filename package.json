@@ -1,0 +1,24 @@
+{
+    "name": "agar-io",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "node test.js",
+        "start": "node server.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/tsaxking/agar-io.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/tsaxking/agar-io/issues"
+    },
+    "homepage": "https://github.com/tsaxking/agar-io#readme",
+    "dependencies": {
+        "express": "^4.18.2",
+        "node-html-constructor": "^2.1.1"
+    }
+}
