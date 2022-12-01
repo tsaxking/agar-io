@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            overflow: hidden;
+            margin: 0px;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas></canvas>
+
+    <script>
+        class Canvas {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+
+                this.shapes = [];
+            }
+
+            addShape(shape) {
+                this.shapes.push(shape);
+            }
+
+            removeShape(shape) {
+                this.shapes = this.shapes.filter(s => s !== shape);
+            }
+
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            draw() {
+                this.clear();
+                this.shapes.forEach(shape => shape.draw(this.ctx));
+            }
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+        }
+
+        class Circle {
+            constructor(x, y, radius, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+
+                // velocity
+                this.dx = 0.5;
+                this.dy = 0.5;
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+
+                this.update();
+            }
+
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+            }
+        }
+
+        const circle = new Circle(100, 100, 50, 'gold');
+
+        const canvas = new Canvas(document.querySelector('canvas'));
+        canvas.resize();
+        canvas.addShape(circle);
+
+        function animate() {
+            canvas.draw();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+
+</html>
