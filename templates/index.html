@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agar.io rip off smh</title>
+    <style>
+        body {
+            overflow: hidden;
+            margin: 0px
+        }
+    </style>
+</head>
+<body>
+    <canvas></canvas>
+
+    <script>
+            class Canvas {
+            // The canvas element
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+
+                // shapes array
+                this.shapes = [];
+            }
+
+            addShape(shape) {
+                this.shapes.push(shape);
+            }
+
+            removeShape(shape) {
+                // filters out everything but shape
+                this.shapes = this.shapes.filter(s => s !== shape);
+            }
+
+            // clears the canvas
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            // draws all shapes
+            draw() {
+                this.clear();
+                this.shapes.forEach(shape => shape.draw(this.ctx));
+            }
+
+            // resize to window
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+        }
+
+        class Circle {
+            constructor(x, y, radius, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+
+                // velocity TODO: make these random
+                this.dx = 0.5;
+                this.dy = 0.5;
+            }
+
+            // draws shape
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false); // draw circle
+                ctx.fillStyle = this.color; // fill color
+                ctx.fill(); // fill
+                ctx.closePath();
+
+                this.update(); // update position
+            }
+
+            // position update
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+
+                // bounce off walls
+            }
+        }
+
+        const circle = new Circle(100, 100, 50, 'gold');
+
+        const canvas = new Canvas(document.querySelector('canvas'));
+        canvas.resize();
+        canvas.addShape(circle);
+
+        // animation loop
+        function animate() {
+            canvas.draw();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+        console.log(window.innerWidth);
+        console.log(window.innerHeight);
+    </script>
+</body>
+</html>
