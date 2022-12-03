@@ -1,28 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agar.io rip off smh</title>
+    <title>Document</title>
     <style>
         body {
             overflow: hidden;
-            margin: 0px
+            margin: 0px;
         }
     </style>
 </head>
+
 <body>
     <canvas></canvas>
 
     <script>
-            class Canvas {
-            // The canvas element
+        var direction_x = 1;
+        var direction_y = 1;
+        var check_val_x = 0;
+        var check_val_y = 0;
+
+        class Canvas {
             constructor(canvas) {
                 this.canvas = canvas;
                 this.ctx = canvas.getContext('2d');
 
-                // shapes array
                 this.shapes = [];
             }
 
@@ -31,22 +36,18 @@
             }
 
             removeShape(shape) {
-                // filters out everything but shape
                 this.shapes = this.shapes.filter(s => s !== shape);
             }
 
-            // clears the canvas
             clear() {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             }
 
-            // draws all shapes
             draw() {
                 this.clear();
                 this.shapes.forEach(shape => shape.draw(this.ctx));
             }
 
-            // resize to window
             resize() {
                 this.canvas.width = window.innerWidth;
                 this.canvas.height = window.innerHeight;
@@ -60,28 +61,56 @@
                 this.radius = radius;
                 this.color = color;
 
-                // velocity TODO: make these random
-                this.dx = 0.5;
-                this.dy = 0.5;
+                // velocity
+                this.dx = 2;
+                this.dy = 2;
             }
 
-            // draws shape
             draw(ctx) {
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false); // draw circle
-                ctx.fillStyle = this.color; // fill color
-                ctx.fill(); // fill
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
                 ctx.closePath();
 
-                this.update(); // update position
+                this.update();
             }
 
-            // position update
             update() {
-                this.x += this.dx;
-                this.y += this.dy;
 
-                // bounce off walls
+                if(check_val_x == 1) {
+                    if(this.x > this.radius) {
+                        this.x -= direction_x * this.dx;
+                    } else if(this.x == this.radius) {
+                        check_val_x = 0;
+                    }
+                } else{
+                    if(check_val_x == 0) {
+                        if(this.x < (window.innerWidth - 50)) {
+                            this.x += direction_x * this.dx;
+                        } else if(this.x == (window.innerWidth - this.radius)){
+                            console.log(2);
+                            check_val_x = 1;
+                        } 
+                    }
+                }
+                if(check_val_y == 0) {
+                    if(this.y < (window.innerHeight - 50)) {
+                        this.y += direction_y * this.dy;
+                    } else if(this.y == (window.innerHeight - 50)) {
+                        check_val_y = 1;
+                    }
+                } else{
+                    if(check_val_y == 1) {
+                        if(this.y > this.radius) {
+                            this.y -= direction_y * this.dy;
+                        } else if(this.y == (this.radius)) {
+                            check_val_y = 0;
+                        }
+                    }
+                }
+                console.log(this.x);
+                console.log(this.y);
             }
         }
 
@@ -91,15 +120,13 @@
         canvas.resize();
         canvas.addShape(circle);
 
-        // animation loop
         function animate() {
             canvas.draw();
             requestAnimationFrame(animate);
         }
 
         animate();
-        console.log(window.innerWidth);
-        console.log(window.innerHeight);
     </script>
 </body>
+
 </html>
