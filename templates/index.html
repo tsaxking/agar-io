@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en"> 
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anant's Circle Thing</title>
+</head>
+<body>
+    <canvas></canvas>
+
+    <script>
+        class Canvas {
+            // The canvas element
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+
+                // shapes array
+                this.shapes = [];
+            }
+
+            addShape(shape) {
+                this.shapes.push(shape);
+            }
+
+            removeShape(shape) {
+                // filters out everything but shape
+                this.shapes = this.shapes.filter(s => s !== shape);
+            }
+
+            // clears the canvas
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            // draws all shapes
+            draw() {
+                this.clear();
+                this.shapes.forEach(shape => shape.draw(this.ctx));
+            }
+
+            // resize to window
+            resize() {
+                this.canvas.width = window.innerWidth-20;
+                this.canvas.height = window.innerHeight-20;
+                
+             
+            }
+        }
+
+        class Circle {
+            constructor(x, y, radius, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+
+                // velocity TODO: make these random
+                this.dx = Math.floor(Math.random() * 10) + 1;
+                this.dy = Math.floor(Math.random() * 10) + 1;
+                console.log(this.dx)
+                console.log(this.dy)
+            }
+
+            // draws shape
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false); // draw circle
+                ctx.fillStyle = this.color; // fill color
+                ctx.fill(); // fill
+                ctx.closePath();
+
+                this.update(); // update position
+            }
+
+            // position update
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+
+                // bounce off walls
+                if(this.x+50 >= window.innerWidth || this.x-50 <= 0){
+                    this.dx = -1*this.dx;
+                } 
+                if(this.y+50 >= window.innerHeight || this.y-50 <= 0){
+                    this.dy = -1*this.dy;
+                }
+            }
+        }
+
+        const circle = new Circle(100, 100, 50, 'blue')
+
+        const canvas = new Canvas(document.querySelector('canvas'));
+        canvas.resize();
+        canvas.addShape(circle);
+
+        // animation loop
+        function animate() {
+            canvas.draw();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
