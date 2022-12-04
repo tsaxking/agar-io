@@ -15,6 +15,8 @@
 </head>
 
 <body>
+
+
     <canvas></canvas>
 
     <script>
@@ -97,8 +99,9 @@
                 this.radius = radius;
                 this.color = color;
 
-                this.dx = 3
-                this.dy = 3
+                // velocity
+                this.dx = 5;
+                this.dy = 5;
             }
 
             draw(ctx) {
@@ -112,39 +115,33 @@
             }
 
             update() {
-                window.addEventListener("keydown", function (event) {
+                window.addEventListener('keydown', (e) => {
                     if (event.defaultPrevented) {
                         return; // Do nothing if the event was already processed
                     }
-
-                    switch (event.key) {
-                    case "ArrowDown":
-                        // code for "down arrow" key press.
-                        this.y -= 10;
-                        console.log(this.y);
-                        break;
-                    case "ArrowUp":
-                        // code for "up arrow" key press.
-                        this.y += 10;
-                        console.log(this.y);
-                        break;
-                    case "ArrowLeft":
-                        // code for "left arrow" key press.
-
-                        break;
-                    case "ArrowRight":
-                        // code for "right arrow" key press.
-
-                        break;
-                    default:
-                        return; // Quit when this doesn't handle the key event.
+                    switch (e.key) {
+                        case 'ArrowLeft':
+                            this.x -= this.dx;
+                            console.log(this.x);
+                            break;
+                        case 'ArrowRight':
+                            this.x += this.dx;
+                            console.log(this.x);
+                            break;
+                        case 'ArrowUp':
+                            this.y -= this.dy;
+                            console.log(this.y);
+                            break;
+                        case 'ArrowDown':
+                            this.y += this.dy;
+                            console.log(this.y);
+                            break;
+                        default:
+                            return;
                     }
 
-                    // Cancel the default action to avoid it being handled twice
                     event.preventDefault();
-                    }, true);
-                    // the last option dispatches the event to the listener first,
-                    // then dispatches event to window
+                });
             }
         }
 
