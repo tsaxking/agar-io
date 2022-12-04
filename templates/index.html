@@ -18,10 +18,7 @@
     <canvas></canvas>
 
     <script>
-        var direction_x = 1;
-        var direction_y = 1;
-        var check_val_x = 0;
-        var check_val_y = 0;
+        var colors =  ['gold', 'red', 'orange', 'yellow', 'blue', 'green', 'pink', 'purple']
 
         class Canvas {
             constructor(canvas) {
@@ -29,6 +26,7 @@
                 this.ctx = canvas.getContext('2d');
 
                 this.shapes = [];
+                console.log(this.shapes);
             }
 
             addShape(shape) {
@@ -54,7 +52,7 @@
             }
         }
 
-        class Circle {
+        class Bot {
             constructor(x, y, radius, color) {
                 this.x = x;
                 this.y = y;
@@ -62,8 +60,8 @@
                 this.color = color;
 
                 // velocity
-                this.dx = 2;
-                this.dy = 2;
+                this.dx = Math.floor(Math.random() * 9) + 1;
+                this.dy = Math.floor(Math.random() * 9) + 1;
             }
 
             draw(ctx) {
@@ -77,48 +75,87 @@
             }
 
             update() {
+                this.x += this.dx;
+                this.y += this.dy;
 
-                if(check_val_x == 1) {
-                    if(this.x > this.radius) {
-                        this.x -= direction_x * this.dx;
-                    } else if(this.x == this.radius) {
-                        check_val_x = 0;
-                    }
-                } else{
-                    if(check_val_x == 0) {
-                        if(this.x < (window.innerWidth - 50)) {
-                            this.x += direction_x * this.dx;
-                        } else if(this.x == (window.innerWidth - this.radius)){
-                            console.log(2);
-                            check_val_x = 1;
-                        } 
-                    }
+                // bounce off walls
+                if(this.x+this.radius >= window.innerWidth || this.x-this.radius <= 0){
+                    this.dx = -1*this.dx;
+                    this.color = colors[Math.floor(Math.random() * 8)]
+                } 
+                if(this.y+this.radius >= window.innerHeight || this.y-this.radius <= 0){
+                    this.dy = -1*this.dy;
+                    this.color = colors[Math.floor(Math.random() * 8)]
                 }
-                if(check_val_y == 0) {
-                    if(this.y < (window.innerHeight - 50)) {
-                        this.y += direction_y * this.dy;
-                    } else if(this.y == (window.innerHeight - 50)) {
-                        check_val_y = 1;
-                    }
-                } else{
-                    if(check_val_y == 1) {
-                        if(this.y > this.radius) {
-                            this.y -= direction_y * this.dy;
-                        } else if(this.y == (this.radius)) {
-                            check_val_y = 0;
-                        }
-                    }
-                }
-                console.log(this.x);
-                console.log(this.y);
             }
         }
 
-        const circle = new Circle(100, 100, 50, 'gold');
+        class Player {
+            constructor(x, y, radius, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+
+                this.dx = 3
+                this.dy = 3
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+
+                this.update();
+            }
+
+            update() {
+                window.addEventListener("keydown", function (event) {
+                    if (event.defaultPrevented) {
+                        return; // Do nothing if the event was already processed
+                    }
+
+                    switch (event.key) {
+                    case "ArrowDown":
+                        // code for "down arrow" key press.
+                        this.y -= 10;
+                        console.log(this.y);
+                        break;
+                    case "ArrowUp":
+                        // code for "up arrow" key press.
+                        this.y += 10;
+                        console.log(this.y);
+                        break;
+                    case "ArrowLeft":
+                        // code for "left arrow" key press.
+
+                        break;
+                    case "ArrowRight":
+                        // code for "right arrow" key press.
+
+                        break;
+                    default:
+                        return; // Quit when this doesn't handle the key event.
+                    }
+
+                    // Cancel the default action to avoid it being handled twice
+                    event.preventDefault();
+                    }, true);
+                    // the last option dispatches the event to the listener first,
+                    // then dispatches event to window
+            }
+        }
+
+        const player1 = new Player(500, 500, 50, 'gold') // this will contain move)
+
+        const bot = new Bot(100, 100, 50, colors[0]); // this will not contain move()
 
         const canvas = new Canvas(document.querySelector('canvas'));
         canvas.resize();
-        canvas.addShape(circle);
+        canvas.addShape(bot);
+        canvas.addShape(player1);
 
         function animate() {
             canvas.draw();
