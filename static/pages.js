@@ -58,15 +58,6 @@ socket.on("playerUpdate", serverPlayer => {
     player.x = serverPlayer.x;
     player.y = serverPlayer.y;
     player.radius = serverPlayer.radius;
-    // ["x", "y"].forEach((coordinate) => {
-    //     if (player[coordinate] - player.radius < 0 ) {
-    //         player[coordinate] = player.radius;
-    //         player.velocity[coordinate] *= -1;
-    //     } else if (player[coordinate] + player.radius > canvas[coordinate == "x" ? "width" : "height"]) {
-    //         player.velocity[coordinate] *= -1;
-    //         player[coordinate] = canvas[coordinate == "x" ? "width" : "height"] - player.radius;
-    //     }
-    // });
 })
 
 socket.on("playersUpdate", players => {

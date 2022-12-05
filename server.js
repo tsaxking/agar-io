@@ -54,6 +54,16 @@ const interval = setInterval(() => {
         player.y += player.velocity.y;
         player.velocity.x -= Math.sign(player.velocity.x) * 0.0005;
         player.velocity.y -= Math.sign(player.velocity.y) * 0.0005;
+
+        ["x", "y"].forEach((coordinate) => {
+            if (player[coordinate] - player.radius < 0 ) {
+                player[coordinate] = player.radius;
+                player.velocity[coordinate] *= -1;
+            } else if (player[coordinate] + player.radius > 1) {
+                player.velocity[coordinate] *= -1;
+                player[coordinate] = 1 - player.radius;
+            }
+        });
     });
 }, 50)
 
