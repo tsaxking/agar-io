@@ -118,6 +118,15 @@
                     this.dy *= -1;
                 }
             }
+            destroy() {
+                canvas.removeShape(this);
+            }
+
+            isIn(shape) {
+                const distance = Math.sqrt((this.x - shape.x) ** 2 + (this.y - shape.y) ** 2);
+
+                return distance < this.radius + shape.radius;
+            }
         }
 
         const canvas = new Canvas(document.querySelector('canvas'));
@@ -169,15 +178,20 @@
                 super.draw(ctx);
             }
 
-            eat(radius) {
-                this.radius += radius;
 
-                // DO THIS
+
+            eat(shape) {
+                if (shape.radius < this.radius) {
+                    this.radius += shape.radius;
+                    canvas.shapes.push(new Food());
+                    shape.destroy();
+                } else {
+                    this.destroy();
+                }
             }
 
-            destroy() {
-                canvas.removeShape(this);
-            }
+
+
 
             split() {
 
@@ -190,12 +204,19 @@
             update() {
                 this.x += this.dx;
                 this.y += this.dy;
+
+                canvas.shapes.forEach(shape => {
+                    if (shape !== this && this.isIn(shape)) {
+                        this.eat(shape);
+                    }
+                });
             }
         }
 
 
 
         const player = new Player();
+        player.randVelocity(5);
         canvas.addShape(player);
 
         class Food extends Circle {
@@ -205,6 +226,7 @@
             }
         }
 
+        canvas.shapes = [...canvas.shapes, ...(new Array(100).fill().map(() => new Food()))];
 
         canvas.animate();
     </script>
