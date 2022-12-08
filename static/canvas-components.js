@@ -2,7 +2,7 @@ class Component {
     /**
      * A basic component that serves as the parent class for all other components (mostly just so that if I ever use type script i can have a function take in type component and it will have a draw function that doesn't cause any thing to crash)
      * @param {number} x The x coordinate of the component (Normalized to canvas width)
-     * @param {number} y The y coordinate of the component (Normalized to canvas height)
+     * @param {number} y The y coordinate of the component (Normalized to canvas width)
      */
     constructor(x, y) {
         this.x = x;
@@ -21,7 +21,7 @@ class Rect extends Component {
     /**
      * Literally just a rectangle
      * @param {number} x The x coordinate of the rect (Normalized to canvas width)
-     * @param {number} y The y coordinate of the rect (Normalized to canvas height)
+     * @param {number} y The y coordinate of the rect (Normalized to canvas width)
      * @param {number} width The width of the rectangle (Normalized to canvas width)
      * @param {number} height The height of the rectangle (Normalized to canvas width)
      * @param {string} color The color of the rectangle. Can be expressed as:
@@ -41,11 +41,11 @@ class Rect extends Component {
 
     draw (canvas) {
         const ctx = canvas.getContext("2d");
-        const scaledX = canvas.width * this.x;
-        const scaledY = canvas.height * this.y;
-        const scaledWidth = canvas.width * this.width;
+        const scaledX = largerWindowDimension * this.x;
+        const scaledY = largerWindowDimension * this.y;
+        const scaledWidth = largerWindowDimension * this.width;
         // Not normalized to canvas height because then the aspect ratio isn't preserved
-        const scaledHeight = canvas.width * this.height;
+        const scaledHeight = largerWindowDimension * this.height;
         ctx.fillStyle = this.color;
         if (this.centered) {
             ctx.fillRect(scaledX - scaledWidth/2, scaledY - scaledHeight/2, scaledWidth, scaledHeight);
@@ -59,7 +59,7 @@ class Square extends Rect {
     /**
      * A square
      * @param {number} x The x coordinate of the square (Normalized to canvas width)
-     * @param {number} y The y coordinate of the square (Normalized to canvas height)
+     * @param {number} y The y coordinate of the square (Normalized to canvas width)
      * @param {number} width The width of the square (Normalized to canvas width)
      * @param {number} height The height of the square (Normalized to canvas width)
      * @param {string} color The color of the square. Can be expressed as:
@@ -79,7 +79,7 @@ class TextComponent extends Component {
     /**
      * Text
      * @param {number} x The x value of the text (Normalized to canvas width)
-     * @param {number} y The y value of the text (Normalized to canvas height)
+     * @param {number} y The y value of the text (Normalized to canvas width)
      * @param {string} color The color of the text. Can be expressed as:
      * - A name of a color like "red" or "blue"
      * - an "rgb(r, g, b)"
@@ -100,7 +100,7 @@ class TextComponent extends Component {
     }
 
     canvasFont (canvas) {
-        return `${Math.round(this.height * canvas.width)}px ${this.font}`
+        return `${Math.round(this.height * largerWindowDimension)}px ${this.font}`
     }
 
     width(canvas) {
@@ -111,8 +111,8 @@ class TextComponent extends Component {
         const ctx = canvas.getContext("2d");
         ctx.font = this.canvasFont(canvas);
         ctx.fillStyle = this.color;
-        const x = this.centered ? this.x * canvas.width - this.width(canvas)/2: this.x * canvas.width;
-        ctx.fillText(this.value, x, this.y * canvas.height - this.height * canvas.width/2);
+        const x = this.centered ? this.x * largerWindowDimension - this.width(canvas)/2: this.x * largerWindowDimension;
+        ctx.fillText(this.value, x, this.y * largerWindowDimension - this.height * largerWindowDimension/2);
     }
 }
 
@@ -138,13 +138,16 @@ class Button extends Rect {
     }
 
     onClickEvent (event, canvas) {
-        const scaledX = canvas.width * this.x;
-        const scaledY = canvas.height * this.y;
-        const scaledWidth = canvas.width * this.width;
+        const scaledX = largerWindowDimension * this.x;
+        const scaledY = largerWindowDimension * this.y;
+        const mouseX = (event.pageX + largerWindowDimension/2 - window.innerWidth/2);
+        const mouseY = (event.pageY + largerWindowDimension/2 - window.innerHeight/2);
+        console.log(mouseX - scaledX, mouseY - scaledY);
+        const scaledWidth = largerWindowDimension * this.width;
         // Not normalized to canvas height because then the aspect ratio isn't preserved
-        const scaledHeight = canvas.width * this.height;
+        const scaledHeight = largerWindowDimension * this.height;
         // Checking if the user clicked within this button
-        if (Math.abs(event.pageX - scaledX) <= scaledWidth/2 && Math.abs(event.pageY - scaledY) <= scaledHeight/2) {
+        if (Math.abs(mouseX - scaledX) <= scaledWidth/2 && Math.abs(mouseY - scaledY) <= scaledHeight/2) {
             this.action(event);
         }
     }
@@ -154,7 +157,7 @@ class Menu extends Rect {
     /**
      * A menu which has a background and subComponents which are automatically formatted
      * @param {number} x The x value of the menu (Scaled to canvas width)
-     * @param {number} y The y value of the menu (Scaled to canvas height)
+     * @param {number} y The y value of the menu (Scaled to canvas width)
      * @param {number} width The width of the menu (Scaled to canvas width)
      * @param {number} height The height of the menu (Scaled to canvas width)
      * @param {string} color The color of the menu's background. Can be expressed as:
@@ -212,7 +215,7 @@ class Circle extends Component {
     /**
      * Circle with an x, y, radius, and color
      * @param {number} x The x coordinate of the circle (Normalized to canvas width)
-     * @param {number} y The y coordinate of the circle (Normalized to canvas height)
+     * @param {number} y The y coordinate of the circle (Normalized to canvas width)
      * @param {number} radius The radius of the circle (Normalized to canvas width)
      * @param {string} color The color of the circle. Can be expressed as:
      * - A name of a color like "red" or "blue"
@@ -227,13 +230,14 @@ class Circle extends Component {
     }
     draw (canvas) {
         const ctx = canvas.getContext("2d");
-        const scaledX = canvas.width * this.x;
-        const scaledY = canvas.height * this.y;
-        const scaledRadius = canvas.width * this.radius;
+        const scaledX = largerWindowDimension * this.x;
+        const scaledY = largerWindowDimension * this.y;
+        const scaledRadius = largerWindowDimension * this.radius;
 
         ctx.beginPath();
         // X and Y offset are to make the circle centered
-        ctx.arc(scaledX - scaledRadius/2, scaledY - scaledRadius/2, scaledRadius, 0, Math.PI * 2)
+        // ctx.arc(scaledX - scaledRadius/2, scaledY - scaledRadius/2, scaledRadius, 0, Math.PI * 2);
+        ctx.arc(scaledX, scaledY, scaledRadius, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
         ctx.fill();
         ctx.closePath();

@@ -16,14 +16,31 @@ class Page {
     }
 }
 
+let smallerWindowDimension = window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth;
+let largerWindowDimension = window.innerWidth > window.innerHeight ? window.innerWidth : window.innerHeight;
 const canvas = document.querySelector("#canvas");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const canvasContainer = document.querySelector("#canvas-container");
+
+canvas.style.position = "absolute";
+canvasContainer.style.position = "relative";
+
+
+canvas.width = largerWindowDimension;
+canvas.height = largerWindowDimension;
+canvas.style.left = window.innerWidth/2 - largerWindowDimension/2 + "px";
+canvas.style.top = window.innerHeight/2 - largerWindowDimension/2 + "px";
 
 window.addEventListener("resize", () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    smallerWindowDimension = window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth;
+    largerWindowDimension = window.innerWidth > window.innerHeight ? window.innerWidth : window.innerHeight;
+
+    canvas.width = largerWindowDimension;
+    canvas.height = largerWindowDimension;
+    canvas.style.left = window.innerWidth/2 - largerWindowDimension/2 + "px";
+    canvas.style.top = window.innerHeight/2 - largerWindowDimension/2 + "px";
 });
+
+const canvasBackground = new Rect(0, 0, largerWindowDimension, largerWindowDimension, "rgb(225, 225, 225)");
 const player = new Circle(0.5, 0.5, 0.01, "rgb(125, 125, 125)");
 
 const pages = {
@@ -74,6 +91,10 @@ document.addEventListener("click", (event) => {
 const pressedKeys = {};
 const mouse = { x: 0, y: 0, down: false };
 
+window.addEventListener("visibilitychange", () => {
+    if (document.visibilityState == "hidden") Object.keys(pressedKeys).forEach(k => delete pressedKeys[k]);
+});
+
 document.addEventListener("keydown", (e) => {
     try { e.key.toLowerCase() } catch { return }
 
@@ -87,8 +108,8 @@ document.addEventListener("keyup", (e) => {
 });
 
 document.addEventListener("mousemove", (e) => {
-    mouse.x = e.pageX/window.innerWidth;
-    mouse.y = e.pageY/window.innerHeight;
+    mouse.x = (e.pageX + largerWindowDimension/2 - window.innerWidth/2)/canvas.width;
+    mouse.y = (e.pageY + largerWindowDimension/2 - window.innerHeight/2)/canvas.height;
 });
 
 document.addEventListener("mousedown", () => mouse.down = true);
@@ -96,6 +117,7 @@ document.addEventListener("mouseup", () => mouse.down = false);
 
 const interval = () => {
     clearCanvas(canvas);
+    canvasBackground.draw(canvas);
     currentPage.draw(canvas);
     currentPage.onInterval();
     requestAnimationFrame(interval);
