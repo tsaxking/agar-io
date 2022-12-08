@@ -77,19 +77,20 @@
 
                 this.color = `rgb(${randomColor()}, ${randomColor()}, ${randomColor()})`;
 
-                // velocity TODO: make these random
-
-                const factor = 5;
-
-                const newVelocity = () => Math.random() * factor - (factor / 2);
-
-                this.dx = newVelocity();
-                this.dy = newVelocity();
+                this.dx = 0;
+                this.dy = 0;
             }
 
             teleport(x, y) {
                 this.x = x;
                 this.y = y;
+            }
+
+            randVelocity(speed) {
+                const newVelocity = () => Math.random() * speed - (speed / 2);
+
+                this.dx = newVelocity();
+                this.dy = newVelocity();
             }
 
             // draws shape
@@ -197,7 +198,12 @@
         const player = new Player();
         canvas.addShape(player);
 
-
+        class Food extends Circle {
+            constructor() {
+                super(5);
+                this.color = 'green';
+            }
+        }
 
 
         canvas.animate();
