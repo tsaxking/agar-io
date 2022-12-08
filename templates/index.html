@@ -52,19 +52,44 @@
             resize() {
                 this.canvas.width = window.innerWidth;
                 this.canvas.height = window.innerHeight;
+
+                this.height = this.canvas.height;
+                this.width = this.canvas.width;
+            }
+
+            animate() {
+                this.draw();
+                requestAnimationFrame(this.animate.bind(this));
             }
         }
 
         class Circle {
-            constructor(x, y, radius, color) {
-                this.x = x;
-                this.y = y;
+            constructor(radius) {
                 this.radius = radius;
-                this.color = color;
+                const randomPosition = (dimension) => Math.random() * (dimension - (this.radius * 2)) + this.radius;
+
+                this.initX = randomPosition(canvas.width);
+                this.initY = randomPosition(canvas.height);
+
+                this.teleport(this.initX, this.initY);
+
+                const randomColor = () => Math.floor(Math.random() * 256);
+
+                this.color = `rgb(${randomColor()}, ${randomColor()}, ${randomColor()})`;
 
                 // velocity TODO: make these random
-                this.dx = 0.5;
-                this.dy = 0.5;
+
+                const factor = 5;
+
+                const newVelocity = () => Math.random() * factor - (factor / 2);
+
+                this.dx = newVelocity();
+                this.dy = newVelocity();
+            }
+
+            teleport(x, y) {
+                this.x = x;
+                this.y = y;
             }
 
             // draws shape
@@ -84,22 +109,96 @@
                 this.y += this.dy;
 
                 // bounce off walls
+                if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+                    this.dx *= -1;
+                }
+
+                if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+                    this.dy *= -1;
+                }
             }
         }
 
-        const circle = new Circle(100, 100, 50, 'gold');
-
         const canvas = new Canvas(document.querySelector('canvas'));
         canvas.resize();
-        canvas.addShape(circle);
 
-        // animation loop
-        function animate() {
-            canvas.draw();
-            requestAnimationFrame(animate);
+
+
+        // circle
+        // player
+        // food
+        // viruses
+        // dispenser (teams only)
+        const getXY = (e) => {
+            if (Array.isArray(e.touches)) {
+                return [e.touches[0].clientX, e.touches[0].clientY];
+            } else {
+                return [e.clientX, e.clientY];
+            }
         }
 
-        animate();
+        class Player extends Circle {
+            constructor() {
+                super(10);
+
+                canvas.canvas.addEventListener('mousemove', this.mouseMove.bind(this));
+                canvas.canvas.addEventListener('touchmove', this.mouseMove.bind(this));
+            }
+
+            mouseMove(e) {
+                const [x, y] = getXY(e);
+                const centerX = this.x;
+                const centerY = this.y;
+
+                let newX = x - centerX;
+                let newY = y - centerY;
+
+                // const distance = Math.sqrt(newX ** 2 + newY ** 2);
+
+                // angle
+                const angle = Math.atan2(newY, newX);
+
+                const speed = Math.sqrt(this.dx ** 2 + this.dy ** 2);
+
+                this.dx = Math.cos(angle) * speed;
+                this.dy = Math.sin(angle) * speed;
+            }
+
+            draw(ctx) {
+                super.draw(ctx);
+            }
+
+            eat(radius) {
+                this.radius += radius;
+            }
+
+            destroy() {
+                canvas.removeShape(this);
+            }
+
+            split() {
+
+                } // not yet
+
+            move() {
+
+            }
+
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+            }
+        }
+
+
+
+        const player = new Player();
+        canvas.addShape(player);
+
+
+
+
+        canvas.animate();
     </script>
 </body>
 
