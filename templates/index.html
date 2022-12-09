@@ -5,9 +5,13 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Agar.io rip off smh</title>
     <style>
         body {
+            background-size: 40px 40px;
+            background-image:
+                linear-gradient(to right, grey 1px, transparent 1px),
+                linear-gradient(to bottom, grey 1px, transparent 1px);
             overflow: hidden;
             margin: 0px;
         }
@@ -15,20 +19,17 @@
 </head>
 
 <body>
-
-
     <canvas></canvas>
 
     <script>
-        var colors =  ['gold', 'red', 'orange', 'yellow', 'blue', 'green', 'pink', 'purple']
-
         class Canvas {
+            // The canvas element
             constructor(canvas) {
                 this.canvas = canvas;
                 this.ctx = canvas.getContext('2d');
 
+                // shapes array
                 this.shapes = [];
-                console.log(this.shapes);
             }
 
             addShape(shape) {
@@ -36,130 +37,208 @@
             }
 
             removeShape(shape) {
+                // filters out everything but shape
                 this.shapes = this.shapes.filter(s => s !== shape);
             }
 
+            // clears the canvas
             clear() {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             }
 
+            // draws all shapes
             draw() {
                 this.clear();
                 this.shapes.forEach(shape => shape.draw(this.ctx));
             }
 
+            // resize to window
             resize() {
                 this.canvas.width = window.innerWidth;
                 this.canvas.height = window.innerHeight;
+
+                this.height = this.canvas.height;
+                this.width = this.canvas.width;
+            }
+
+            animate() {
+                this.draw();
+                requestAnimationFrame(this.animate.bind(this));
             }
         }
 
-        class Bot {
-            constructor(x, y, radius, color) {
+        class Circle {
+            constructor(radius) {
+                this.radius = radius;
+                const randomPosition = (dimension) => Math.random() * (dimension - (this.radius * 2)) + this.radius;
+
+                this.initX = randomPosition(canvas.width);
+                this.initY = randomPosition(canvas.height);
+
+                this.teleport(this.initX, this.initY);
+
+                const randomColor = () => Math.floor(Math.random() * 256);
+
+                this.color = `rgb(${randomColor()}, ${randomColor()}, ${randomColor()})`;
+
+                this.dx = 0;
+                this.dy = 0;
+            }
+
+            teleport(x, y) {
                 this.x = x;
                 this.y = y;
-                this.radius = radius;
-                this.color = color;
-
-                // velocity
-                this.dx = Math.floor(Math.random() * 9) + 1;
-                this.dy = Math.floor(Math.random() * 9) + 1;
             }
 
+            randVelocity(speed) {
+                const newVelocity = () => Math.random() * speed - (speed / 2);
+
+                this.dx = newVelocity();
+                this.dy = newVelocity();
+            }
+
+            // draws shape
             draw(ctx) {
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-                ctx.fillStyle = this.color;
-                ctx.fill();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false); // draw circle
+                ctx.fillStyle = this.color; // fill color
+                ctx.fill(); // fill
                 ctx.closePath();
 
-                this.update();
+                this.update(); // update position
             }
 
+            // position update
             update() {
                 this.x += this.dx;
                 this.y += this.dy;
 
                 // bounce off walls
-                if(this.x+this.radius >= window.innerWidth || this.x-this.radius <= 0){
-                    this.dx = -1*this.dx;
-                    this.color = colors[Math.floor(Math.random() * 8)]
-                } 
-                if(this.y+this.radius >= window.innerHeight || this.y-this.radius <= 0){
-                    this.dy = -1*this.dy;
-                    this.color = colors[Math.floor(Math.random() * 8)]
+                if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+                    this.dx *= -1;
                 }
+
+                if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+                    this.dy *= -1;
+                }
+            }
+            destroy() {
+                canvas.removeShape(this);
+            }
+
+            eat(shape) {
+                let factor = 0.2;
+                if (shape.radius < this.radius) {
+                    this.radius += factor * shape.radius;
+                    let food = new Food();
+                    food.randVelocity(5);
+                    canvas.shapes.push(food);
+                    shape.destroy();
+                } else if (shape.radius > this.radius){
+                    shape.radius += factor * this.radius;
+                    this.destroy();
+                }
+            }
+
+            isIn(shape) {
+                const distance = Math.sqrt((this.x - shape.x) ** 2 + (this.y - shape.y) ** 2);
+
+                return distance < this.radius + shape.radius;
             }
         }
 
-        class Player {
-            constructor(x, y, radius, color) {
-                this.x = x;
-                this.y = y;
-                this.radius = radius;
-                this.color = color;
+        const canvas = new Canvas(document.querySelector('canvas'));
+        canvas.resize();
 
-                // velocity
-                this.dx = 5;
-                this.dy = 5;
+
+
+        // circle
+        // player
+        // food
+        // viruses
+        // dispenser (teams only)
+        const getXY = (e) => {
+            if (Array.isArray(e.touches)) {
+                return [e.touches[0].clientX, e.touches[0].clientY];
+            } else {
+                return [e.clientX, e.clientY];
+            }
+        }
+
+        class Player extends Circle {
+            constructor() {
+                super(10);
+
+                this.x = 0.5 * canvas.width;
+                this.y = 0.5 * canvas.height;
+
             }
 
             draw(ctx) {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-                ctx.closePath();
+                super.draw(ctx);
+            }
 
-                this.update();
+            split() {
+
+                } // not yet
+
+            move() {
+
             }
 
             update() {
-                window.addEventListener('keydown', (e) => {
-                    if (event.defaultPrevented) {
-                        return; // Do nothing if the event was already processed
+                canvas.shapes.forEach(shape => {
+                    if (shape !== this && this.isIn(shape)) {
+                        this.eat(shape);
                     }
-                    switch (e.key) {
-                        case 'ArrowLeft':
-                            this.x -= this.dx;
-                            console.log(this.x);
-                            break;
-                        case 'ArrowRight':
-                            this.x += this.dx;
-                            console.log(this.x);
-                            break;
-                        case 'ArrowUp':
-                            this.y -= this.dy;
-                            console.log(this.y);
-                            break;
-                        case 'ArrowDown':
-                            this.y += this.dy;
-                            console.log(this.y);
-                            break;
-                        default:
-                            return;
-                    }
-
-                    event.preventDefault();
                 });
             }
         }
 
-        const player1 = new Player(500, 500, 50, 'gold') // this will contain move)
 
-        const bot = new Bot(100, 100, 50, colors[0]); // this will not contain move()
 
-        const canvas = new Canvas(document.querySelector('canvas'));
-        canvas.resize();
-        canvas.addShape(bot);
-        canvas.addShape(player1);
+        const player = new Player();
+        canvas.addShape(player);
 
-        function animate() {
-            canvas.draw();
-            requestAnimationFrame(animate);
+        class Food extends Circle {
+            constructor() {
+                super(5);
+                this.color = 'green';
+
+                canvas.canvas.addEventListener('mousemove', this.mouseMove.bind(this));
+                canvas.canvas.addEventListener('touchmove', this.mouseMove.bind(this));
+            }
+
+            mouseMove(e) {
+                const [x, y] = getXY(e);
+                const centerX = this.x;
+                const centerY = this.y;
+                let newX = x - centerX;
+                let newY = y - centerY;
+                // const distance = Math.sqrt(newX ** 2 + newY ** 2);
+
+                // angle
+                const angle = Math.atan2(newY, newX);
+
+                const speed = Math.sqrt(this.dx ** 2 + this.dy ** 2);
+
+                this.dx = Math.cos(angle) * speed;
+                this.dy = Math.sin(angle) * speed;
+            }
+
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+            }
         }
 
-        animate();
+        canvas.shapes = [...canvas.shapes, ...(new Array(100).fill().map(() =>{
+             let food = new Food()
+             food.randVelocity(5);
+             return food;
+        }))];
+
+        canvas.animate();
     </script>
 </body>
 
