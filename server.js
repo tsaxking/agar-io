@@ -1,15 +1,21 @@
 const express = require("express");
 const http = require("http");
 const path = require("path");
-const { Player } = require("./server-functions-and-classes/player");
+const { Pellet } = require("./server-functions-and-classes/pellet");
+const { Player, Mouse } = require("./server-functions-and-classes/player");
+
 
 const app = express();
 const server = http.createServer(app);
 
 const io = require("socket.io")(server);
 
-const defaultPlayer = () => new Player("random", "random", 0.01);
+const mapSize = 5;
+const defaultPlayer = () => new Player(Math.random() * mapSize, Math.random() * mapSize, 0.01);
 const players = {}
+const randomColor = () => Math.floor(Math.random() * 256)
+const createPellet = () => new Pellet(Math.random() * mapSize, Math.random() * mapSize, `rgb(${randomColor()}, ${randomColor()}, ${randomColor()})`);
+let pellets = Array(20 * mapSize ** 2).fill().map(createPellet);
 io.on("connect", (socket) => {
 
     console.log('New user has connected:', socket.id);
@@ -22,20 +28,33 @@ io.on("connect", (socket) => {
         }
 
         player.pressedKeys = pressedKeys;
-        player.mouse = mouse;
-        if (pressedKeys["a"] && player.velocity.x > -0.05) {
-            player.velocity.x -= 0.001;
-        }
-        if (pressedKeys["d"] && player.velocity.x < 0.05) {
-            player.velocity.x += 0.001;
-        }
-        if (pressedKeys["w"] && player.velocity.y > -0.05) {
-            player.velocity.y -= 0.001;
-        }
-        if (pressedKeys["s"] && player.velocity.y < 0.05) {
-            player.velocity.y += 0.001;
-        }
+        player.mouse.x = mouse.x - 0.5  ;
+        player.mouse.y = mouse.y - 0.5;
+        player.mouse.down = mouse.down;
 
+        if (Object.values(pressedKeys).filter(v => v).length == 0) {
+            const angle = player.mouse.angle;
+            const cartesian = Mouse.cartesian(angle, player.speed);
+            player.velocity.x = cartesian.x;
+            player.velocity.y = cartesian.y;
+        }
+        console.log(Mouse.polar(player.velocity.x, player.velocity.y))
+        
+        if (Mouse.polar(player.velocity.x, player.velocity.y).magnitude < player.speed) {
+            if (pressedKeys["a"]) {
+                player.velocity.x -= 0.001;
+            }
+            if (pressedKeys["d"]) {
+                player.velocity.x += 0.001;
+            }
+            if (pressedKeys["w"]) {
+                player.velocity.y -= 0.001;
+            }
+            if (pressedKeys["s"]) {
+                player.velocity.y += 0.001;
+            }
+        }
+        io.emit("pelletsUpdate", pellets);
         socket.emit("playerUpdate", player);
         io.emit("playersUpdate", Object.values(players));
     });
@@ -64,10 +83,10 @@ const interval = setInterval(() => {
         ["x", "y"].forEach((coordinate) => {
             if (player[coordinate] - player.radius < 0 ) {
                 player[coordinate] = player.radius;
-                player.velocity[coordinate] *= -1;
-            } else if (player[coordinate] + player.radius > 1) {
-                player.velocity[coordinate] *= -1;
-                player[coordinate] = 1 - player.radius;
+                player.velocity[coordinate] *= -0.75;
+            } else if (player[coordinate] + player.radius > mapSize) {
+                player.velocity[coordinate] *= -0.75;
+                player[coordinate] = mapSize - player.radius;
             }
         });
 
@@ -82,13 +101,16 @@ const interval = setInterval(() => {
                     largerPlayer = player;
                     smallerPlayer = collidingPlayer;
                 } else {
-                    if (Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2) > Math.sqrt(collidingPlayer.velocity.x ** 2 + collidingPlayer.velocity.y ** 2)) {
-                        largerPlayer = player;
-                        smallerPlayer = collidingPlayer
-                    } else if (Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2) < Math.sqrt(collidingPlayer.velocity.x ** 2 + collidingPlayer.velocity.y ** 2)){
-                        largerPlayer = collidingPlayer;
-                        smallerPlayer = player;
-                    }
+                    // const tempVelocity = Object.assign({}, player.velocity);
+                    // player.velocity = collidingPlayer.velocity;
+                    // collidingPlayer.velocity = tempVelocity;
+                    // if (Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2) > Math.sqrt(collidingPlayer.velocity.x ** 2 + collidingPlayer.velocity.y ** 2)) {
+                    //     largerPlayer = player;
+                    //     smallerPlayer = collidingPlayer
+                    // } else if (Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2) < Math.sqrt(collidingPlayer.velocity.x ** 2 + collidingPlayer.velocity.y ** 2)){
+                    //     largerPlayer = collidingPlayer;
+                    //     smallerPlayer = player;
+                    // }
                 }
                 if (largerPlayer && smallerPlayer) {
                     if (largerPlayer.radius < 0.5) largerPlayer.radius += 0.001;
@@ -96,6 +118,16 @@ const interval = setInterval(() => {
                 }
             }
         });
+
+        pellets.forEach(pellet => {
+            const distance = Math.sqrt((player.x - pellet.x) ** 2 + (player.y - pellet.y) ** 2);
+            if (distance <= pellet.radius + player.radius) {
+                if (player.radius < 0.5) player.radius += 0.001; 
+                pellet.radius -= 0.01;
+            }
+        });
+        pellets = pellets.filter(p => p.radius > 0);
+        if (pellets.length < 100) pellets = [...Array(100 - pellets.length).fill().map(createPellet), ...pellets];
     });
 
     // Detecting if a player has died because they have a radius of 0 or less.

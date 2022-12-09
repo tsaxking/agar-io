@@ -11,8 +11,9 @@ class Component {
     /**
      * just here for typescript stuff
      * @param {Node} canvas AN html canvas element
+     * @param {Node} scaleFactor A scaleFactor to scale the component by
      */
-    draw(canvas) {
+    draw(canvas, scaleFactor) {
 
     }
 }
@@ -39,18 +40,64 @@ class Rect extends Component {
         this.centered = centered;
     }
 
-    draw (canvas) {
+    draw (canvas, scaleFactor) {
         const ctx = canvas.getContext("2d");
-        const scaledX = largerWindowDimension * this.x;
-        const scaledY = largerWindowDimension * this.y;
-        const scaledWidth = largerWindowDimension * this.width;
+        const scaledX = scaleFactor * this.x;
+        const scaledY = scaleFactor * this.y;
+        const scaledWidth = scaleFactor * this.width;
         // Not normalized to canvas height because then the aspect ratio isn't preserved
-        const scaledHeight = largerWindowDimension * this.height;
+        const scaledHeight = scaleFactor * this.height;
         ctx.fillStyle = this.color;
         if (this.centered) {
             ctx.fillRect(scaledX - scaledWidth/2, scaledY - scaledHeight/2, scaledWidth, scaledHeight);
         } else {
             ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
+        }
+    }
+}
+class Grid extends Rect {
+    /**
+     * A bunch of lines perpendicular to each other which form a grid
+     * @param {number} x The x coordinate of the grid (Normalized to canvas width)
+     * @param {number} y The y coordinate of the grid (Normalized to canvas width)
+     * @param {number} width The width of the grid (Normalized to canvas width)
+     * @param {number} height The height of the grid (Normalized to canvas width)
+     * @param {string} color The color of the grid. Can be expressed as:
+     * - A name of a color like "red" or "blue"
+     * - an "rgb(r, g, b)"
+     * - an "rgba(r, g, b, a)" (A is for alpha)
+     * - a hex like "#000000"
+     * @param {boolean} centered Whether or not the center of the grid at the x and y coordinates, it false it will left align the rectangle
+     * @param {number} linesAmount The amount of lines (in one direction so if you put 10 it will draw 10 lines on the x and ten on the y)
+     */
+    constructor (x, y, width, height, color, centered, linesAmount) {
+        super(x, y, width, height, color, centered);
+        this.linesAmount = linesAmount;
+    }
+    draw(canvas, scaleFactor) {
+        super.draw(canvas, scaleFactor);
+        const scaledX = scaleFactor * this.x;
+        const scaledY = scaleFactor * this.y;
+        const spacing = (this.width * scaleFactor)/this.linesAmount + 1;
+        const ctx = canvas.getContext("2d");        
+        for (let i = scaledX; i <= scaledX + scaleFactor * this.width; i += spacing) {
+            ctx.strokeStyle = "rgb(0, 0, 0)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(i, scaledY);
+            ctx.lineTo(i, scaledY + scaleFactor *this.width);
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        for (let i = scaledY; i <= scaledY + scaleFactor * this.width; i += spacing) {
+            ctx.strokeStyle = "rgb(0, 0, 0)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(scaledX, i);
+            ctx.lineTo(scaledX + scaleFactor * this.width, i);
+            ctx.closePath();
+            ctx.stroke();
         }
     }
 }
@@ -99,20 +146,20 @@ class TextComponent extends Component {
         this.centered = centered;
     }
 
-    canvasFont (canvas) {
-        return `${Math.round(this.height * largerWindowDimension)}px ${this.font}`
+    canvasFont (scaleFactor) {
+        return `${Math.round(this.height * scaleFactor)}px ${this.font}`
     }
 
     width(canvas) {
         return canvas.getContext('2d').measureText(this.value).width;
     }
 
-    draw(canvas) {
+    draw(canvas, scaleFactor) {
         const ctx = canvas.getContext("2d");
-        ctx.font = this.canvasFont(canvas);
+        ctx.font = this.canvasFont(scaleFactor);
         ctx.fillStyle = this.color;
-        const x = this.centered ? this.x * largerWindowDimension - this.width(canvas)/2: this.x * largerWindowDimension;
-        ctx.fillText(this.value, x, this.y * largerWindowDimension - this.height * largerWindowDimension/2);
+        const x = this.centered ? this.x * scaleFactor - this.width(canvas)/2: this.x * scaleFactor;
+        ctx.fillText(this.value, x, this.y * scaleFactor - this.height * scaleFactor/2);
     }
 }
 
@@ -204,7 +251,7 @@ class Menu extends Rect {
         })
     }
 
-    draw(canvas) {
+    draw(canvas, scaleFactor) {
         new Rect().draw.bind(this)(canvas);
         
         this.subComponents.forEach(c => c.draw(canvas));
@@ -228,11 +275,11 @@ class Circle extends Component {
         this.radius = radius;
         this.color = color;
     }
-    draw (canvas) {
+    draw (canvas, scaleFactor) {
         const ctx = canvas.getContext("2d");
-        const scaledX = largerWindowDimension * this.x;
-        const scaledY = largerWindowDimension * this.y;
-        const scaledRadius = largerWindowDimension * this.radius;
+        const scaledX = scaleFactor * this.x;
+        const scaledY = scaleFactor * this.y;
+        const scaledRadius = scaleFactor * this.radius;
 
         ctx.beginPath();
         // X and Y offset are to make the circle centered
