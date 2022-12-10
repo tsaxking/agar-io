@@ -1,6 +1,4 @@
-//TODO: make coordinate be a class that player, mouse and pellet are all extended from
-
-class Mouse {
+class PolarCoordinatedObject {
     /**
      * Converts cartesian coordinates to polar coordinates
      * @param {number} x An x value
@@ -14,10 +12,10 @@ class Mouse {
     static cartesian (angle, magnitude) {
         return { x: Math.cos(angle) * magnitude, y:  Math.sin(angle) * magnitude };
     }
-    constructor(x, y, down) {
+
+    constructor (x, y) {
         this.x = x;
         this.y = y;
-        this.down = down;
     }
 
     get angle () {
@@ -27,11 +25,6 @@ class Mouse {
     get magnitude() {
         return this.x/Math.cos(this.angle);
     }
-
-    setXY (angle, magnitude) {
-        this.x = Math.cos(angle) * magnitude;
-        this.y = Math.sin(angle) * magnitude;
-    }
 }
 
-module.exports = { Mouse };
+module.exports = { PolarCoordinatedObject };

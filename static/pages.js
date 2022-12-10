@@ -8,7 +8,7 @@ class Page {
     }
     draw (canvas, scaleFactor) {
         try {
-            this.components.forEach(c => c.draw(canvas, scaleFactor));
+            this.components.sort((a, b) => a.z - b.z).forEach(c => c.draw(canvas, scaleFactor));
         } catch (e) {
             console.error(e);
             console.log(c);
@@ -52,22 +52,23 @@ window.addEventListener("resize", () => {
     minimap.style.left = window.innerWidth - largerWindowDimension/10 + "px";
 });
 
-const canvasBackground = new Grid(0, 0, 5, 5, "rgb(225, 225, 225)", false, 150);
-const minimapBackground = new Rect(0, 0, 10, 10, "rgb(200, 200, 200)", false);
+const canvasBackground = new Grid(0, 0, -1000, 5, 5, "rgb(225, 225, 225)", false, 150);
+const minimapBackground = new Rect(0, 0, -999, 10, 10, "rgb(200, 200, 200)", false);
 
-const player = new Circle(0.5, 0.5, 0.01, "rgb(125, 125, 125)");
+const player = new Circle(0.5, 0.5, 100, 0.01, "rgb(125, 125, 125)");
+let playerId = -1;
 
 const pages = {
     main: new Page ("main", [
-        new Button (0.5, 0.5, 0.25, 0.25, "rgb(125, 125, 125)", true, () => {
+        new Button (0.5, 0.5, 1, 0.25, 0.25, "rgb(125, 125, 125)", true, () => {
             changePage("game");
         }),
-        new TextComponent(0.5, 0.5, "black", 0.03, "Arial", "Join Game", true)
+        new TextComponent(0.5, 0.5, 2, "black", 0.03, "Arial", "Join Game", true)
     ], () => {}),
     game: new Page ("game", [
         player
     ], () => {
-        socket.emit("playerUpdate", { pressedKeys, mouse });
+        if (mouse.checkMovement()) socket.emit("playerUpdate", { angle: mouse.angle });
     })
 }
 
@@ -85,20 +86,25 @@ function changePage(pageName) {
     currentPage = pages[pageName];
 }
 
-socket.on("playerUpdate", serverPlayer => {
-    player.x = serverPlayer.x;
-    player.y = serverPlayer.y;
-    player.radius = serverPlayer.radius;
-})
+socket.on("id", (id) => {
+    playerId = id;
+});
 
 socket.on("playersUpdate", players => {
+    const thisPlayer = players.find(p => p.id == playerId);
+    if (thisPlayer) {
+        player.x = thisPlayer.x;
+        player.y = thisPlayer.y;
+        player.radius = thisPlayer.radius;
+    }
+
     const gameComponents = pages["game"].components;
     players.forEach(p => {
         const newX = p.x - player.x + 0.5;
         const newY = p.y - player.y + 0.5;
-        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, p.radius * 10, "rgba(0, 0, 0, 0.75)"));
+        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 99, p.radius * 10, "rgba(0, 0, 0, 0.75)"));
         if (newX < 0 || newX > 1 || newY > 1 || newY < 0) return;
-        gameComponents.push(new Circle(newX, newY, p.radius, "rgb(0, 0, 0)"));
+        gameComponents.push(new Circle(newX, newY, 99, p.radius, "rgb(0, 0, 0)"));
     });
     // pages["game"].components.push(player);
 });
@@ -110,9 +116,9 @@ socket.on("pelletsUpdate", pellets => {
     pellets.forEach(p => {
         const newX = p.x - player.x + 0.5;
         const newY = p.y - player.y + 0.5;
-        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, p.radius * 5, p.color));
+        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 98, p.radius * 5, p.color));
         if (newX < 0 || newX > 1 || newY > 1 || newY < 0) return;
-        gameComponents.push(new Circle(newX, newY, p.radius, p.color));
+        gameComponents.push(new Circle(newX, newY, 98, p.radius, p.color));
     });
 });
 document.addEventListener("click", (event) => {
@@ -143,6 +149,7 @@ document.addEventListener("keyup", (e) => {
 document.addEventListener("mousemove", (e) => {
     mouse.x = (e.pageX + largerWindowDimension/2 - window.innerWidth/2)/canvas.width;
     mouse.y = (e.pageY + largerWindowDimension/2 - window.innerHeight/2)/canvas.height;
+    mouse.moved = true;
 });
 
 document.addEventListener("mousedown", () => mouse.down = true);

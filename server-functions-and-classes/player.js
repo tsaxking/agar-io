@@ -1,19 +1,30 @@
-const { Mouse } = require("./Mouse");
+const { PolarCoordinatedObject } = require("./polar-coordinated-object");
 
-class Player {
-    constructor (x, y, radius) {
-        // Don't have to scale the x or y because they are already normalized
-        this.x = x == "random" ? Math.random(): x;
-        this.y = y == "random" ? Math.random(): y;
+class Player extends PolarCoordinatedObject {
+    constructor (x, y, radius, id) {
+        super(x, y);
+
         this.radius = radius;
         this.pressedKeys = {};
-        this.mouse = new Mouse(0, 0, false)
         this.velocity = { x: 0, y: 0 }
+        this.id = id;
     }
 
     get speed () {
         return 0.002/(this.radius ** 0.5);
     }
+
+    get minimalInfo () {
+        const { x, y, radius, id } = this;
+        return { x, y, radius, id};
+    }
+    
+    split() {
+        if (this.radius < 0.04) return;
+        this.velocity.x *= 3;
+        this.velocity.y *= 3;
+        this.radius = Math.floor(this.radius * 250)/1000;
+    }
 }
 
-module.exports = { Player, Mouse };
+module.exports = { Player };

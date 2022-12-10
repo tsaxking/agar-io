@@ -4,7 +4,7 @@ class Component {
      * @param {number} x The x coordinate of the component (Normalized to canvas width)
      * @param {number} y The y coordinate of the component (Normalized to canvas width)
      */
-    constructor(x, y) {
+    constructor(x, y, z) {
         this.x = x;
         this.y = y;
     }
@@ -32,8 +32,8 @@ class Rect extends Component {
      * - a hex like "#000000"
      * @param {boolean} centered Whether or not the center of the rectangle at the x and y coordinates, it false it will left align the rectangle
      */
-    constructor (x, y, width, height, color, centered) {
-        super(x, y);
+    constructor (x, y, z, width, height, color, centered) {
+        super(x, y, z);
         this.width = width;
         this.height = height;
         this.color = color;
@@ -70,8 +70,8 @@ class Grid extends Rect {
      * @param {boolean} centered Whether or not the center of the grid at the x and y coordinates, it false it will left align the rectangle
      * @param {number} linesAmount The amount of lines (in one direction so if you put 10 it will draw 10 lines on the x and ten on the y)
      */
-    constructor (x, y, width, height, color, centered, linesAmount) {
-        super(x, y, width, height, color, centered);
+    constructor (x, y, z, width, height, color, centered, linesAmount) {
+        super(x, y, z, width, height, color, centered);
         this.linesAmount = linesAmount;
     }
     draw(canvas, scaleFactor) {
@@ -80,8 +80,10 @@ class Grid extends Rect {
         const scaledY = scaleFactor * this.y;
         const spacing = (this.width * scaleFactor)/this.linesAmount + 1;
         const ctx = canvas.getContext("2d");        
-        for (let i = scaledX; i <= scaledX + scaleFactor * this.width; i += spacing) {
-            ctx.strokeStyle = "rgb(0, 0, 0)";
+
+        ctx.strokeStyle = `rgb(0, 0, 0)`;
+
+        for (let i = scaledX /*+ (Date.now() % 250)*spacing/250*/; i <= scaledX + scaleFactor * this.width /*+ (Date.now() % 250)*spacing/250*/; i += spacing) {
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(i, scaledY);
@@ -90,8 +92,7 @@ class Grid extends Rect {
             ctx.stroke();
         }
 
-        for (let i = scaledY; i <= scaledY + scaleFactor * this.width; i += spacing) {
-            ctx.strokeStyle = "rgb(0, 0, 0)";
+        for (let i = scaledY /*+ (Date.now() % 250)*spacing/250*/; i <= scaledY + scaleFactor * this.width /*+ (Date.now() % 250)*spacing/250*/; i += spacing) {
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(scaledX, i);
@@ -116,8 +117,8 @@ class Square extends Rect {
      * - a hex like "#000000"
      * @param {boolean} centered Whether or not the center of the square at the x and y coordinates, it false it will left align the square
      */
-    constructor (x, y, width, color, centered) {
-        super (x, y, width, width, color, centered);
+    constructor (x, y, z, width, color, centered) {
+        super (x, y, z, width, width, color, centered);
     }
 }
 
@@ -137,8 +138,8 @@ class TextComponent extends Component {
      * @param {string} value What the text says
      * @param {boolean} centered Whether the text is centered or left align
      */
-    constructor (x, y, color, height, font, value, centered) {
-        super (x, y);
+    constructor (x, y, z, color, height, font, value, centered) {
+        super (x, y, z);
         this.color = color;
         this.height = height;
         this.font = font;
@@ -179,8 +180,8 @@ class Button extends Rect {
      * @param {boolean} centered Whether or not the center of the button at the x and y coordinates, it false it will left align the button
      * @param {Function} action What the button does when clicked on
      */
-    constructor(x, y, width, height, color, centered, action) {
-        super(x, y, width, height, color, centered);
+    constructor(x, y, z, width, height, color, centered, action) {
+        super(x, y, z, width, height, color, centered);
         this.action = action;
     }
 
@@ -215,8 +216,8 @@ class Menu extends Rect {
      * @param {boolean} centered Whether or not the center of the menu at the x and y coordinates, it false it will left align the menu
      * @param {Array.<Component>} subComponents An array of components inside the menu
      */
-    constructor(x, y, width, height, color, subComponents) {
-        super(x, y, width, height, color, true);
+    constructor(x, y, z, width, height, color, subComponents) {
+        super(x, y, z, width, height, color, true);
         this.subComponents = subComponents;
         this.positionSubComponents();
     }
@@ -270,8 +271,8 @@ class Circle extends Component {
      * - an "rgba(r, g, b, a)" (A is for alpha)
      * - a hex like "#000000"
      */
-    constructor(x, y, radius, color) {
-        super (x, y);
+    constructor(x, y, z, radius, color) {
+        super (x, y, z);
         this.radius = radius;
         this.color = color;
     }

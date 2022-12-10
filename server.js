@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const path = require("path");
 const { Pellet } = require("./server-functions-and-classes/pellet");
-const { Player, Mouse } = require("./server-functions-and-classes/player");
+const { Player } = require("./server-functions-and-classes/player");
 
 
 const app = express();
@@ -11,7 +11,11 @@ const server = http.createServer(app);
 const io = require("socket.io")(server);
 
 const mapSize = 5;
-const defaultPlayer = () => new Player(Math.random() * mapSize, Math.random() * mapSize, 0.01);
+let playerCount = 0
+const defaultPlayer = () => {
+    playerCount ++;
+    return new Player(Math.random() * mapSize, Math.random() * mapSize, 0.02, playerCount);
+};
 const players = {}
 const randomColor = () => Math.floor(Math.random() * 256)
 const createPellet = () => new Pellet(Math.random() * mapSize, Math.random() * mapSize, `rgb(${randomColor()}, ${randomColor()}, ${randomColor()})`);
@@ -19,44 +23,37 @@ let pellets = Array(20 * mapSize ** 2).fill().map(createPellet);
 io.on("connect", (socket) => {
 
     console.log('New user has connected:', socket.id);
-
-    socket.on("playerUpdate", ({ pressedKeys, mouse }) => {
+    socket.on("playerUpdate", ({ angle }) => {
         let player = players[socket.id];
         if (!player) {
             players[socket.id] = defaultPlayer();
+            socket.emit("id", playerCount);
             player = players[socket.id];
         }
 
-        player.pressedKeys = pressedKeys;
-        player.mouse.x = mouse.x - 0.5  ;
-        player.mouse.y = mouse.y - 0.5;
-        player.mouse.down = mouse.down;
+        const cartesian = Player.cartesian(angle, player.speed);
 
-        if (Object.values(pressedKeys).filter(v => v).length == 0) {
-            const angle = player.mouse.angle;
-            const cartesian = Mouse.cartesian(angle, player.speed);
-            player.velocity.x = cartesian.x;
-            player.velocity.y = cartesian.y;
-        }
-        console.log(Mouse.polar(player.velocity.x, player.velocity.y))
+        player.velocity.x = cartesian.x;
+        player.velocity.y = cartesian.y;
         
-        if (Mouse.polar(player.velocity.x, player.velocity.y).magnitude < player.speed) {
-            if (pressedKeys["a"]) {
-                player.velocity.x -= 0.001;
-            }
-            if (pressedKeys["d"]) {
-                player.velocity.x += 0.001;
-            }
-            if (pressedKeys["w"]) {
-                player.velocity.y -= 0.001;
-            }
-            if (pressedKeys["s"]) {
-                player.velocity.y += 0.001;
-            }
-        }
-        io.emit("pelletsUpdate", pellets);
-        socket.emit("playerUpdate", player);
-        io.emit("playersUpdate", Object.values(players));
+        // if (Mouse.polar(player.velocity.x, player.velocity.y).magnitude < player.speed) {
+        //     if (pressedKeys["a"]) {
+        //         player.velocity.x -= 0.001;
+        //     }
+        //     if (pressedKeys["d"]) {
+        //         player.velocity.x += 0.001;
+        //     }
+        //     if (pressedKeys["w"]) {
+        //         player.velocity.y -= 0.001;
+        //     }
+        //     if (pressedKeys["s"]) {
+        //         player.velocity.y += 0.001;
+        //     }
+        //     // They key for space is just " "
+        //     if (pressedKeys[" "]) {
+        //         player.split();
+        //     }
+        // } 
     });
 
     socket.on("disconnect", () => {
@@ -71,21 +68,21 @@ const interval = setInterval(() => {
     Object.values(players).forEach(player => {
         player.x += player.velocity.x;
         player.y += player.velocity.y;
-        player.velocity.x -= Math.sign(player.velocity.x) * 0.0015;
-        player.velocity.y -= Math.sign(player.velocity.y) * 0.0015;
-        if (Math.abs(player.velocity.x) < 0.001) {
-            player.velocity.x = 0;
-        }
-        if (Math.abs(player.velocity.y) < 0.001) {
-            player.velocity.y = 0;
-        }
+        // player.velocity.x -= Math.sign(player.velocity.x) * 0.0015;
+        // player.velocity.y -= Math.sign(player.velocity.y) * 0.0015;
+        // if (Math.abs(player.velocity.x) < 0.001) {
+        //     player.velocity.x = 0;
+        // }
+        // if (Math.abs(player.velocity.y) < 0.001) {
+        //     player.velocity.y = 0;
+        // }
 
         ["x", "y"].forEach((coordinate) => {
             if (player[coordinate] - player.radius < 0 ) {
                 player[coordinate] = player.radius;
-                player.velocity[coordinate] *= -0.75;
+                player.velocity[coordinate] *= -0.0;
             } else if (player[coordinate] + player.radius > mapSize) {
-                player.velocity[coordinate] *= -0.75;
+                player.velocity[coordinate] *= -0.0;
                 player[coordinate] = mapSize - player.radius;
             }
         });
@@ -134,10 +131,12 @@ const interval = setInterval(() => {
     Object.values(players).forEach((player, index) => {
         if (player.radius <= 0) {
             delete players[Object.keys(players)[index]];
-    
-            io.emit("playerUpdate", Object.values(players));
         }
-    })
+    });
+    io.emit("pelletsUpdate", pellets);
+    io.emit("playersUpdate", Object.values(players).map(player => {
+        return player.minimalInfo;
+    }));
 }, 50)
 
 const port = process.env.PORT || 8080;
