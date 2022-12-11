@@ -102,9 +102,9 @@ socket.on("playersUpdate", players => {
     players.forEach(p => {
         const newX = p.x - player.x + 0.5;
         const newY = p.y - player.y + 0.5;
-        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 99, p.radius * 10, "rgba(0, 0, 0, 0.75)"));
+        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 99, p.radius * 10, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, 0.75)`));
         if (newX < 0 || newX > 1 || newY > 1 || newY < 0) return;
-        gameComponents.push(new Circle(newX, newY, 99, p.radius, "rgb(0, 0, 0)"));
+        gameComponents.push(new Circle(newX, newY, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b})`));
     });
     // pages["game"].components.push(player);
 });

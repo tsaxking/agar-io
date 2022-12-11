@@ -1,13 +1,14 @@
 const { PolarCoordinatedObject } = require("./polar-coordinated-object");
 
 class Player extends PolarCoordinatedObject {
-    constructor (x, y, radius, id) {
+    constructor (x, y, radius, id, color) {
         super(x, y);
 
         this.radius = radius;
         this.pressedKeys = {};
         this.velocity = { x: 0, y: 0 }
         this.id = id;
+        this.color = color;
     }
 
     get speed () {
@@ -15,8 +16,8 @@ class Player extends PolarCoordinatedObject {
     }
 
     get minimalInfo () {
-        const { x, y, radius, id } = this;
-        return { x, y, radius, id};
+        const { x, y, radius, id, color } = this;
+        return { x, y, radius, id, color };
     }
     
     split() {

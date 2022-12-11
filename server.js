@@ -14,11 +14,21 @@ const mapSize = 5;
 let playerCount = 0
 const defaultPlayer = () => {
     playerCount ++;
-    return new Player(Math.random() * mapSize, Math.random() * mapSize, 0.02, playerCount);
+    return new Player(Math.random() * mapSize, Math.random() * mapSize, 0.02, playerCount, { r: randomColor(), g: randomColor(), b: randomColor() });
 };
 const players = {}
 const randomColor = () => Math.floor(Math.random() * 256)
-const createPellet = () => new Pellet(Math.random() * mapSize, Math.random() * mapSize, `rgb(${randomColor()}, ${randomColor()}, ${randomColor()})`);
+const createPellet = () => {
+    const x = Math.random() * mapSize;
+    const y = Math.random() * mapSize;
+    // Took the formula for rainbow coloring from this graph: https://www.desmos.com/calculator/xfg4dalr80;
+    const i = (x + y)/(2 * mapSize);
+    const r = 3060 * (i - 0.5) ** 2 - 85;
+    const g = -3060 * (i - 1/3) ** 2 + 340;
+    const b = -4950 * (i - 0.58 - 1/300) ** 2 + 286.875;
+
+    return new Pellet(x, y, `rgb(${r}, ${g}, ${b})`)
+};
 let pellets = Array(20 * mapSize ** 2).fill().map(createPellet);
 io.on("connect", (socket) => {
 
