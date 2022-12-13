@@ -8,6 +8,7 @@ class Page {
     }
     draw (canvas, scaleFactor) {
         try {
+            // console.log(this.components.sort((a, b) => a.z - b.z) ? this.components.sort((a, b) => a.z - b.z).map(c => c.z): "");
             this.components.sort((a, b) => a.z - b.z).forEach(c => c.draw(canvas, scaleFactor));
         } catch (e) {
             console.error(e);
@@ -63,7 +64,8 @@ const pages = {
         new Button (0.5, 0.5, 1, 0.25, 0.25, "rgb(125, 125, 125)", true, () => {
             changePage("game");
         }),
-        new TextComponent(0.5, 0.5, 2, "black", 0.03, "Arial", "Join Game", true)
+        new TextComponent(0.5, 0.5, 2, "black", 0.03, "Arial", "Join Game", true),
+        new Rect(0.5, 0.5, -100, canvas.width, canvas.height, "rgba(127, 127, 127, 0.5)", true)
     ], () => {}),
     game: new Page ("game", [
         player
@@ -90,6 +92,10 @@ socket.on("id", (id) => {
     playerId = id;
 });
 
+socket.on("playerDied", (_) => {
+    changePage("main");
+});
+
 socket.on("playersUpdate", players => {
     const thisPlayer = players.find(p => p.id == playerId);
     if (thisPlayer) {
@@ -102,8 +108,8 @@ socket.on("playersUpdate", players => {
     players.forEach(p => {
         const newX = p.x - player.x + 0.5;
         const newY = p.y - player.y + 0.5;
-        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 99, p.radius * 10, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, 0.75)`));
-        if (newX < 0 || newX > 1 || newY > 1 || newY < 0) return;
+        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 99, p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, 0.75)`));
+        if (newX < 0 || newX > 1.5 || newY > 1.5 || newY < 0) return;
         gameComponents.push(new Circle(newX, newY, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b})`));
     });
     // pages["game"].components.push(player);
@@ -116,8 +122,8 @@ socket.on("pelletsUpdate", pellets => {
     pellets.forEach(p => {
         const newX = p.x - player.x + 0.5;
         const newY = p.y - player.y + 0.5;
-        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 98, p.radius * 5, p.color));
-        if (newX < 0 || newX > 1 || newY > 1 || newY < 0) return;
+        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 98, p.radius + 0.05, p.color));
+        if (newX < 0 || newX > 1.5 || newY > 1.5 || newY < 0) return;
         gameComponents.push(new Circle(newX, newY, 98, p.radius, p.color));
     });
 });

@@ -16,8 +16,9 @@ const defaultPlayer = () => {
     playerCount ++;
     return new Player(Math.random() * mapSize, Math.random() * mapSize, 0.02, playerCount, { r: randomColor(), g: randomColor(), b: randomColor() });
 };
-const players = {}
-const randomColor = () => Math.floor(Math.random() * 256)
+const players = {};
+const sockets = {};
+const randomColor = () => Math.floor(Math.random() * 256);
 const createPellet = () => {
     const x = Math.random() * mapSize;
     const y = Math.random() * mapSize;
@@ -27,7 +28,7 @@ const createPellet = () => {
     const g = -3060 * (i - 1/3) ** 2 + 340;
     const b = -4950 * (i - 0.58 - 1/300) ** 2 + 286.875;
 
-    return new Pellet(x, y, `rgb(${r}, ${g}, ${b})`)
+    return new Pellet(x, y, `rgb(${r}, ${g}, ${b})`);
 };
 let pellets = Array(20 * mapSize ** 2).fill().map(createPellet);
 io.on("connect", (socket) => {
@@ -37,6 +38,7 @@ io.on("connect", (socket) => {
         let player = players[socket.id];
         if (!player) {
             players[socket.id] = defaultPlayer();
+            sockets[socket.id] = socket;
             socket.emit("id", playerCount);
             player = players[socket.id];
         }
@@ -140,6 +142,8 @@ const interval = setInterval(() => {
     // Detecting if a player has died because they have a radius of 0 or less.
     Object.values(players).forEach((player, index) => {
         if (player.radius <= 0) {
+            sockets[Object.keys(players)[index]].emit("playerDied", undefined);
+
             delete players[Object.keys(players)[index]];
         }
     });
