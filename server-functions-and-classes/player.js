@@ -12,7 +12,7 @@ class Player extends PolarCoordinatedObject {
     }
 
     get speed () {
-        return 0.002/(this.radius ** 0.5);
+        return 0.001/(this.radius ** 0.5);
     }
 
     get minimalInfo () {

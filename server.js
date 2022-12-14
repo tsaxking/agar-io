@@ -131,8 +131,8 @@ const interval = setInterval(() => {
         pellets.forEach(pellet => {
             const distance = Math.sqrt((player.x - pellet.x) ** 2 + (player.y - pellet.y) ** 2);
             if (distance <= pellet.radius + player.radius) {
-                if (player.radius < 0.5) player.radius += 0.001; 
-                pellet.radius -= 0.01;
+                if (player.radius < 0.5) player.radius += 0.0001; 
+                pellet.radius -= 0.001;
             }
         });
         pellets = pellets.filter(p => p.radius > 0);
@@ -151,7 +151,7 @@ const interval = setInterval(() => {
     io.emit("playersUpdate", Object.values(players).map(player => {
         return player.minimalInfo;
     }));
-}, 50)
+}, 1000/120)
 
 const port = process.env.PORT || 8080;
 

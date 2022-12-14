@@ -96,6 +96,32 @@ socket.on("playerDied", (_) => {
     changePage("main");
 });
 
+let receiveStart;
+let totalReceiveFrames = 0, receiveRate;
+socket.on("pelletsUpdate", pellets => {
+    if (!receiveStart) receiveStart = Date.now();
+    receiveRate = 1000 * totalReceiveFrames/(Date.now() - receiveStart);
+
+    if (totalFrames < totalReceiveFrames) {
+        // console.error("Refresh rate higher than receive rate.");
+        // pages["game"].components = [];
+        // minimapComponents = [];
+    } else {
+        pages["game"].components = [];
+        minimapComponents = [];
+        totalReceiveFrames ++;
+    }
+    
+    const gameComponents = pages["game"].components;
+    pellets.forEach(p => {
+        const newX = p.x - player.x + 0.5;
+        const newY = p.y - player.y + 0.5;
+        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 98, p.radius + 0.05, p.color));
+        if (newX < 0 || newX > 1.5 || newY > 1.5 || newY < 0) return;
+        gameComponents.push(new Circle(newX, newY, 98, p.radius, p.color));
+    });
+});
+
 socket.on("playersUpdate", players => {
     const thisPlayer = players.find(p => p.id == playerId);
     if (thisPlayer) {
@@ -113,20 +139,9 @@ socket.on("playersUpdate", players => {
         gameComponents.push(new Circle(newX, newY, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b})`));
     });
     // pages["game"].components.push(player);
+    interval();
 });
 
-socket.on("pelletsUpdate", pellets => {
-    pages["game"].components = [];
-    minimapComponents = [];
-    const gameComponents = pages["game"].components;
-    pellets.forEach(p => {
-        const newX = p.x - player.x + 0.5;
-        const newY = p.y - player.y + 0.5;
-        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 98, p.radius + 0.05, p.color));
-        if (newX < 0 || newX > 1.5 || newY > 1.5 || newY < 0) return;
-        gameComponents.push(new Circle(newX, newY, 98, p.radius, p.color));
-    });
-});
 document.addEventListener("click", (event) => {
     currentPage.components.forEach(component => {
         if (component.onClickEvent) component.onClickEvent(event, canvas);
@@ -161,7 +176,11 @@ document.addEventListener("mousemove", (e) => {
 document.addEventListener("mousedown", () => mouse.down = true);
 document.addEventListener("mouseup", () => mouse.down = false);
 
+let totalFrames = 0, refreshRate;
+const start = Date.now();
 const interval = () => {
+    totalFrames ++;
+    refreshRate = 1000 * totalFrames/(Date.now() - start);
     clearCanvas(canvas);
     clearCanvas(minimap);
 
@@ -176,6 +195,6 @@ const interval = () => {
     });
 
     currentPage.onInterval();
-    requestAnimationFrame(interval);
+    // requestAnimationFrame(interval);
 }
-interval();
+// interval();
