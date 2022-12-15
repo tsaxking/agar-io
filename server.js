@@ -1,8 +1,8 @@
 const express = require("express");
 const http = require("http");
 const path = require("path");
-const { Pellet } = require("./server-functions-and-classes/pellet");
-const { Player } = require("./server-functions-and-classes/player");
+const { Pellet } = require("./server-functions-and-classes/pellet.js");
+const { Player } = require("./server-functions-and-classes/player.js");
 
 
 const app = express();
@@ -23,7 +23,7 @@ const createPellet = () => {
     const x = Math.random() * mapSize;
     const y = Math.random() * mapSize;
     // Took the formula for rainbow coloring from this graph: https://www.desmos.com/calculator/xfg4dalr80;
-    const i = (x + y)/(2 * mapSize);
+    const i = /*(*/(x + y)/(2 * mapSize)// + Date.now()/1000) % 1;
     const r = 3060 * (i - 0.5) ** 2 - 85;
     const g = -3060 * (i - 1/3) ** 2 + 340;
     const b = -4950 * (i - 0.58 - 1/300) ** 2 + 286.875;
@@ -34,17 +34,26 @@ let pellets = Array(20 * mapSize ** 2).fill().map(createPellet);
 io.on("connect", (socket) => {
 
     console.log('New user has connected:', socket.id);
+    
     socket.on("playerUpdate", ({ angle }) => {
+        // Gets the exiting player data from an object stored on the server
         let player = players[socket.id];
+
+        // Checks if no data exists
         if (!player) {
+            // If there isn't any data it creates new data
             players[socket.id] = defaultPlayer();
             sockets[socket.id] = socket;
+
+            // Sends the id of the user in order to make it so the user can tell which player is them
             socket.emit("id", playerCount);
+
             player = players[socket.id];
         }
 
-        const cartesian = Player.cartesian(angle, player.speed);
+        // Setting the player's velocity based of the angle given above
 
+        const cartesian = Player.cartesian(angle, player.speed);
         player.velocity.x = cartesian.x;
         player.velocity.y = cartesian.y;
         
@@ -153,7 +162,7 @@ const interval = setInterval(() => {
     }));
 }, 1000/120)
 
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 2000;
 
 app.use("/static", express.static(path.resolve(__dirname, "./static")));
 

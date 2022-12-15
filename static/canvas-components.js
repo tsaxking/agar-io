@@ -84,7 +84,7 @@ class Grid extends Rect {
 
         ctx.strokeStyle = `rgb(0, 0, 0)`;
 
-        for (let i = scaledX /*+ (Date.now() % 250)*spacing/250*/; i <= scaledX + scaleFactor * this.width /*+ (Date.now() % 250)*spacing/250*/; i += spacing) {
+        for (let i = scaledX; i <= scaledX + scaleFactor * this.width; i += spacing) {
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(i, scaledY);
@@ -93,7 +93,7 @@ class Grid extends Rect {
             ctx.stroke();
         }
 
-        for (let i = scaledY /*+ (Date.now() % 250)*spacing/250*/; i <= scaledY + scaleFactor * this.width /*+ (Date.now() % 250)*spacing/250*/; i += spacing) {
+        for (let i = scaledY ; i <= scaledY + scaleFactor * this.width; i += spacing) {
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(scaledX, i);

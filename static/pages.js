@@ -70,6 +70,8 @@ const pages = {
     game: new Page ("game", [
         player
     ], () => {
+        // This is runs every time a server sends the client a packet and the client is on the game page.
+        // Check movement checks if the player has moved their mouse which prevents the client from sending redundant info to the server.
         if (mouse.checkMovement()) socket.emit("playerUpdate", { angle: mouse.angle });
     })
 }
@@ -123,6 +125,7 @@ socket.on("pelletsUpdate", pellets => {
 });
 
 socket.on("playersUpdate", players => {
+    // Finds the player with the same id as the client so that it can set the reference point to that player's x and y
     const thisPlayer = players.find(p => p.id == playerId);
     if (thisPlayer) {
         player.x = thisPlayer.x;
@@ -130,12 +133,22 @@ socket.on("playersUpdate", players => {
         player.radius = thisPlayer.radius;
     }
 
+    // This is the same as Canvas.shapes I'm just using a weird data structure
     const gameComponents = pages["game"].components;
+
     players.forEach(p => {
+        // Offsetting the player because of the viewpoint
+        // Note that the x and y values are normalized to the screen size so 0.5 is halfway across the screen
         const newX = p.x - player.x + 0.5;
         const newY = p.y - player.y + 0.5;
+
+        // Ignore the minimap thing
         minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 99, p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, 0.75)`));
+
+        // Removing all the players that aren't on your screen for performance reasons
         if (newX < 0 || newX > 1.5 || newY > 1.5 || newY < 0) return;
+        // Creating a new instance of the circle class and adding it to game components
+        // (99 is the z value)
         gameComponents.push(new Circle(newX, newY, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b})`));
     });
     // pages["game"].components.push(player);
@@ -198,3 +211,5 @@ const interval = () => {
     // requestAnimationFrame(interval);
 }
 // interval();
+
+socket.emit("positionUpdate", { x:1, y: 2})
