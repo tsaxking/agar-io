@@ -52,9 +52,6 @@
             resize() {
                 this.canvas.width = window.innerWidth;
                 this.canvas.height = window.innerHeight;
-
-                this.height = this.canvas.height;
-                this.width = this.canvas.width;
             }
 
             animate() {
@@ -94,7 +91,7 @@
             }
 
             // draws shape
-            draw(ctx) {
+            draw(ctx, ) {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false); // draw circle
                 ctx.fillStyle = this.color; // fill color
@@ -129,30 +126,13 @@
             }
         }
 
-        const canvas = new Canvas(document.querySelector('canvas'));
-        canvas.resize();
-
-
-
-        // circle
-        // player
-        // food
-        // viruses
-        // dispenser (teams only)
-        const getXY = (e) => {
-            if (Array.isArray(e.touches)) {
-                return [e.touches[0].clientX, e.touches[0].clientY];
-            } else {
-                return [e.clientX, e.clientY];
-            }
-        }
-
         class Player extends Circle {
             constructor() {
                 super(10);
 
                 canvas.canvas.addEventListener('mousemove', this.mouseMove.bind(this));
                 canvas.canvas.addEventListener('touchmove', this.mouseMove.bind(this));
+                this.eatable = false;
             }
 
             mouseMove(e) {
@@ -174,24 +154,15 @@
                 this.dy = Math.sin(angle) * speed;
             }
 
-            draw(ctx) {
-                super.draw(ctx);
-            }
-
-
-
             eat(shape) {
                 if (shape.radius < this.radius) {
-                    this.radius += shape.radius;
+                    this.radius += shape.radius / 10;
                     canvas.shapes.push(new Food());
                     shape.destroy();
                 } else {
                     this.destroy();
                 }
             }
-
-
-
 
             split() {
 
@@ -204,29 +175,36 @@
             update() {
                 this.x += this.dx;
                 this.y += this.dy;
-
                 canvas.shapes.forEach(shape => {
-                    if (shape !== this && this.isIn(shape)) {
+                    if (!shape.eatable) return;
+                    if (this.isIn(shape)) {
                         this.eat(shape);
                     }
                 });
             }
         }
 
-
-
-        const player = new Player();
-        player.randVelocity(5);
-        canvas.addShape(player);
-
         class Food extends Circle {
             constructor() {
                 super(5);
                 this.color = 'green';
+                this.eatable = true;
             }
         }
 
-        canvas.shapes = [...canvas.shapes, ...(new Array(100).fill().map(() => new Food()))];
+
+
+        const canvas = new Canvas(document.querySelector('canvas'));
+        canvas.resize();
+        const getXY = (e) => {
+            if (Array.isArray(e.touches)) {
+                return [e.touches[0].clientX, e.touches[0].clientY];
+            } else {
+                return [e.clientX, e.clientY];
+            }
+        }
+
+
 
         canvas.animate();
     </script>
