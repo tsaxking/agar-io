@@ -12,7 +12,7 @@ class Page {
             this.components.sort((a, b) => a.z - b.z).forEach(c => c.draw(canvas, scaleFactor));
         } catch (e) {
             console.error(e);
-            console.log(c);
+            // console.log(c);
         }
     }
 }
@@ -56,7 +56,7 @@ window.addEventListener("resize", () => {
 const canvasBackground = new Grid(0, 0, -1000, 5, 5, "rgb(225, 225, 225)", false, 150);
 const minimapBackground = new Rect(0, 0, -999, 10, 10, "rgb(200, 200, 200)", false);
 
-const player = new Circle(0.5, 0.5, 100, 0.01, "rgb(125, 125, 125)");
+const bot = new Circle(0.5, 0.5, 100, 0.01, "rgb(125, 125, 125)");
 let playerId = -1;
 
 const pages = {
@@ -68,7 +68,7 @@ const pages = {
         new Rect(0.5, 0.5, -100, canvas.width, canvas.height, "rgba(127, 127, 127, 0.5)", true)
     ], () => {}),
     game: new Page ("game", [
-        player
+        bot
     ], () => {
         // This is runs every time a server sends the client a packet and the client is on the game page.
         // Check movement checks if the player has moved their mouse which prevents the client from sending redundant info to the server.
@@ -116,8 +116,8 @@ socket.on("pelletsUpdate", pellets => {
     
     const gameComponents = pages["game"].components;
     pellets.forEach(p => {
-        const newX = p.x - player.x + 0.5;
-        const newY = p.y - player.y + 0.5;
+        const newX = p.x - bot.x + 0.5;
+        const newY = p.y - bot.y + 0.5;
         minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 98, p.radius + 0.05, p.color));
         if (newX < 0 || newX > 1.5 || newY > 1.5 || newY < 0) return;
         gameComponents.push(new Circle(newX, newY, 98, p.radius, p.color));
@@ -128,9 +128,9 @@ socket.on("playersUpdate", players => {
     // Finds the player with the same id as the client so that it can set the reference point to that player's x and y
     const thisPlayer = players.find(p => p.id == playerId);
     if (thisPlayer) {
-        player.x = thisPlayer.x;
-        player.y = thisPlayer.y;
-        player.radius = thisPlayer.radius;
+        bot.x = thisPlayer.x;
+        bot.y = thisPlayer.y;
+        bot.radius = thisPlayer.radius;
     }
 
     // This is the same as Canvas.shapes I'm just using a weird data structure
@@ -139,17 +139,17 @@ socket.on("playersUpdate", players => {
     players.forEach(p => {
         // Offsetting the player because of the viewpoint
         // Note that the x and y values are normalized to the screen size so 0.5 is halfway across the screen
-        const newX = p.x - player.x + 0.5;
-        const newY = p.y - player.y + 0.5;
+        const newX = p.x - bot.x + 0.5;
+        const newY = p.y - bot.y + 0.5;
 
         // Ignore the minimap thing
-        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 99, p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, 0.75)`));
+        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 99, p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 0.75})`));
 
         // Removing all the players that aren't on your screen for performance reasons
         if (newX < 0 || newX > 1.5 || newY > 1.5 || newY < 0) return;
         // Creating a new instance of the circle class and adding it to game components
         // (99 is the z value)
-        gameComponents.push(new Circle(newX, newY, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b})`));
+        gameComponents.push(new Circle(newX, newY, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 1})`));
     });
     // pages["game"].components.push(player);
     interval();
@@ -197,8 +197,8 @@ const interval = () => {
     clearCanvas(canvas);
     clearCanvas(minimap);
 
-    canvasBackground.x = 0.5 - player.x;
-    canvasBackground.y = 0.5 - player.y;
+    canvasBackground.x = 0.5 - bot.x;
+    canvasBackground.y = 0.5 - bot.y;
     canvasBackground.draw(canvas, largerWindowDimension);
     currentPage.draw(canvas, largerWindowDimension);
 

@@ -286,7 +286,12 @@ class Circle extends Component {
         ctx.beginPath();
         // X and Y offset are to make the circle centered
         // ctx.arc(scaledX - scaledRadius/2, scaledY - scaledRadius/2, scaledRadius, 0, Math.PI * 2);
-        ctx.arc(scaledX, scaledY, scaledRadius, 0, Math.PI * 2);
+        if (scaledRadius < 0) {
+            console.error("circle radius less then 0: ", scaledRadius);
+            ctx.arc(scaledX, scaledY, 0, 0, Math.PI * 2);
+        } else {
+            ctx.arc(scaledX, scaledY, scaledRadius, 0, Math.PI * 2);
+        }
         ctx.fillStyle = this.color;
         ctx.fill();
         ctx.closePath();

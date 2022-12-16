@@ -12,7 +12,7 @@ class Player extends PolarCoordinatedObject {
     }
 
     get speed () {
-        return 0.001/(this.radius ** 0.5);
+        return 0.0075 - ((this.radius/100));
     }
 
     get minimalInfo () {
@@ -28,4 +28,4 @@ class Player extends PolarCoordinatedObject {
     }
 }
 
-module.exports = { Player };
+module.exports = { Player, PolarCoordinatedObject };

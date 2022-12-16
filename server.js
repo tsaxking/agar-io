@@ -1,9 +1,8 @@
 const express = require("express");
 const http = require("http");
 const path = require("path");
+const { Bot, Player, PolarCoordinatedObject } = require("./server-functions-and-classes/bot.js");
 const { Pellet } = require("./server-functions-and-classes/pellet.js");
-const { Player } = require("./server-functions-and-classes/player.js");
-
 
 const app = express();
 const server = http.createServer(app);
@@ -14,7 +13,7 @@ const mapSize = 5;
 let playerCount = 0
 const defaultPlayer = () => {
     playerCount ++;
-    return new Player(Math.random() * mapSize, Math.random() * mapSize, 0.02, playerCount, { r: randomColor(), g: randomColor(), b: randomColor() });
+    return new Player(Math.random() * mapSize, Math.random() * mapSize, 0.02, playerCount, { r: randomColor(), g: randomColor(), b: randomColor(), alpha: 0.75 });
 };
 const players = {};
 const sockets = {};
@@ -30,7 +29,20 @@ const createPellet = () => {
 
     return new Pellet(x, y, `rgb(${r}, ${g}, ${b})`);
 };
-let pellets = Array(20 * mapSize ** 2).fill().map(createPellet);
+
+const createBot = () => {
+    const x = Math.random() * mapSize;
+    const y = Math.random() * mapSize;
+    // Took the formula for rainbow coloring from this graph: https://www.desmos.com/calculator/xfg4dalr80;
+    const i = /*(*/(x + y)/(2 * mapSize)// + Date.now()/1000) % 1;
+    const r = 3060 * (i - 0.5) ** 2 - 85;
+    const g = -3060 * (i - 1/3) ** 2 + 340;
+    const b = -4950 * (i - 0.58 - 1/300) ** 2 + 286.875;
+
+    return new Bot(x, y, 0.02, { r, g, b, alpha: 0.25 });
+};
+let pellets = Array(30 * mapSize ** 2).fill().map(createPellet);
+let bots = Array(mapSize ** 2).fill().map(createBot);
 io.on("connect", (socket) => {
 
     console.log('New user has connected:', socket.id);
@@ -86,6 +98,37 @@ io.on("connect", (socket) => {
 });
 
 const interval = setInterval(() => {
+    bots.forEach(bot => {
+        bot.pathFind(pellets, Object.values(players));
+        bot.x += bot.velocity.x;
+        bot.y += bot.velocity.y;
+
+        bots.forEach(collidingBot => {
+            const distance = Math.sqrt((bot.x - collidingBot.x) ** 2 + (bot.y - collidingBot.y) ** 2);
+            if (distance <= collidingBot.radius + bot.radius) {
+                let [largerPlayer, smallerPlayer] = [undefined, undefined];
+                if (collidingBot.radius > bot.radius) {
+                    largerPlayer = collidingBot;
+                    smallerPlayer = bot;
+                } else if (collidingBot.radius < bot.radius) {
+                    largerPlayer = bot;
+                    smallerPlayer = collidingBot;
+                }
+
+                if (largerPlayer && smallerPlayer) {
+                    if (largerPlayer.radius < 0.25) largerPlayer.radius += 0.0001;
+                    smallerPlayer.radius -= 0.001;
+                }
+            }
+        });
+        pellets.forEach(pellet => {
+            const distance = Math.sqrt((bot.x - pellet.x) ** 2 + (bot.y - pellet.y) ** 2);
+            if (distance <= pellet.radius + bot.radius) {
+                if (bot.radius < 0.25) bot.radius += 0.00001; 
+                pellet.radius -= 0.001;
+            }
+        });
+    });
     Object.values(players).forEach(player => {
         player.x += player.velocity.x;
         player.y += player.velocity.y;
@@ -108,7 +151,7 @@ const interval = setInterval(() => {
             }
         });
 
-        Object.values(players).forEach(collidingPlayer => {
+        Object.values(players).concat(bots).forEach(collidingPlayer => {
             const distance = Math.sqrt((player.x - collidingPlayer.x) ** 2 + (player.y - collidingPlayer.y) ** 2);
             if (distance <= collidingPlayer.radius + player.radius) {
                 let [largerPlayer, smallerPlayer] = [undefined, undefined];
@@ -140,12 +183,14 @@ const interval = setInterval(() => {
         pellets.forEach(pellet => {
             const distance = Math.sqrt((player.x - pellet.x) ** 2 + (player.y - pellet.y) ** 2);
             if (distance <= pellet.radius + player.radius) {
-                if (player.radius < 0.5) player.radius += 0.0001; 
-                pellet.radius -= 0.001;
+                if (player.radius < 0.25) player.radius += 0.0003; 
+                pellet.radius -= 0.003;
             }
         });
         pellets = pellets.filter(p => p.radius > 0);
-        if (pellets.length < 100) pellets = [...Array(100 - pellets.length).fill().map(createPellet), ...pellets];
+        if (pellets.length < 20 * mapSize ** 2) pellets = [...Array(30 * mapSize ** 2 - pellets.length).fill().map(createPellet), ...pellets];
+        bots = bots.filter(b => b.radius > 0);
+        if (bots.length < mapSize ** 2) bots = [...Array(mapSize ** 2 - bots.length).fill().map(createBot), ...bots];
     });
 
     // Detecting if a player has died because they have a radius of 0 or less.
@@ -157,7 +202,7 @@ const interval = setInterval(() => {
         }
     });
     io.emit("pelletsUpdate", pellets);
-    io.emit("playersUpdate", Object.values(players).map(player => {
+    io.emit("playersUpdate", Object.values(players).concat(bots).map(player => {
         return player.minimalInfo;
     }));
 }, 1000/120)
