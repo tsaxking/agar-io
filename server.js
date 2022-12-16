@@ -1,23 +1,34 @@
+// Installing npm packages
 const express = require("express");
 const http = require("http");
 const path = require("path");
+
+// Getting Classes from other JS files
 const { Bot, Player, PolarCoordinatedObject } = require("./server-functions-and-classes/bot.js");
 const { Pellet } = require("./server-functions-and-classes/pellet.js");
 
+// Setting up socket.io
 const app = express();
 const server = http.createServer(app);
-
 const io = require("socket.io")(server);
 
+// Map Size determines how wide the map is relative to a client's screen, so if mapsize = 1 then the map would be the size of each client's screen
 const mapSize = 5;
-let playerCount = 0
+// Playercount is used to generate IDs for players so that clients can tell which player is them
+let playerCount = 0;
+
+// Function for creating new players
 const defaultPlayer = () => {
+    // Changes player count by 1 so that the new player's id is different then the previous player
     playerCount ++;
+    // See player.js for info on the parameters
     return new Player(Math.random() * mapSize, Math.random() * mapSize, 0.02, playerCount, { r: randomColor(), g: randomColor(), b: randomColor(), alpha: 0.75 });
 };
-const players = {};
-const sockets = {};
+
+// Generates a random number between 0 and 256
 const randomColor = () => Math.floor(Math.random() * 256);
+
+// Creates a new pellet
 const createPellet = () => {
     const x = Math.random() * mapSize;
     const y = Math.random() * mapSize;
@@ -30,6 +41,7 @@ const createPellet = () => {
     return new Pellet(x, y, `rgb(${r}, ${g}, ${b})`);
 };
 
+// Creates a new bot
 const createBot = () => {
     const x = Math.random() * mapSize;
     const y = Math.random() * mapSize;
@@ -41,12 +53,20 @@ const createBot = () => {
 
     return new Bot(x, y, 0.02, { r, g, b, alpha: 0.25 });
 };
+
+// Objects that store each player and socket in the form of "<socket id>" : "<player/socket>"
+const players = {};
+const sockets = {};
+
+// Creating an array of pellets and bots based off the map size
 let pellets = Array(30 * mapSize ** 2).fill().map(createPellet);
 let bots = Array(mapSize ** 2).fill().map(createBot);
-io.on("connect", (socket) => {
 
+
+io.on("connect", (socket) => {
     console.log('New user has connected:', socket.id);
     
+    // Angles is the angle of their mouse relative to the center of their screen
     socket.on("playerUpdate", ({ angle }) => {
         // Gets the exiting player data from an object stored on the server
         let player = players[socket.id];
@@ -64,7 +84,6 @@ io.on("connect", (socket) => {
         }
 
         // Setting the player's velocity based of the angle given above
-
         const cartesian = Player.cartesian(angle, player.speed);
         player.velocity.x = cartesian.x;
         player.velocity.y = cartesian.y;
@@ -89,6 +108,7 @@ io.on("connect", (socket) => {
         // } 
     });
 
+    // Triggers when a user leaves the page or reloads
     socket.on("disconnect", () => {
         console.log("User disconnected: ", socket.id);
         delete players[socket.id];
@@ -99,37 +119,52 @@ io.on("connect", (socket) => {
 
 const interval = setInterval(() => {
     bots.forEach(bot => {
+        // Causes the bot to change its velocity in order to move in the direction of a player or pellet
         bot.pathFind(pellets, Object.values(players));
+
+        // Moves the bot
         bot.x += bot.velocity.x;
         bot.y += bot.velocity.y;
 
+        // Checks if the bot can eat other bots or be eaten by other bots
         bots.forEach(collidingBot => {
+            // Pythagorean theorem
             const distance = Math.sqrt((bot.x - collidingBot.x) ** 2 + (bot.y - collidingBot.y) ** 2);
+
             if (distance <= collidingBot.radius + bot.radius) {
-                let [largerPlayer, smallerPlayer] = [undefined, undefined];
+                // Figuring out which bot is bigger
+                let [largerBot, smallerBot] = [undefined, undefined];
                 if (collidingBot.radius > bot.radius) {
-                    largerPlayer = collidingBot;
-                    smallerPlayer = bot;
+                    largerBot = collidingBot;
+                    smallerBot = bot;
                 } else if (collidingBot.radius < bot.radius) {
-                    largerPlayer = bot;
-                    smallerPlayer = collidingBot;
+                    largerBot = bot;
+                    smallerBot = collidingBot;
                 }
 
-                if (largerPlayer && smallerPlayer) {
-                    if (largerPlayer.radius < 0.25) largerPlayer.radius += 0.0001;
-                    smallerPlayer.radius -= 0.001;
+                // Checking if their is a larger and smaller bot in case they are the same size.
+                if (largerBot && smallerBot) {
+                    // causing the large bot to eat the smaller bot
+                    if (largerBot.radius < 0.25) largerBot.radius += 0.0001;
+                    smallerBot.radius -= 0.001;
                 }
             }
         });
+
+        // Checks if the bot is eating any pellets
         pellets.forEach(pellet => {
+             // Pythagorean theorem
             const distance = Math.sqrt((bot.x - pellet.x) ** 2 + (bot.y - pellet.y) ** 2);
             if (distance <= pellet.radius + bot.radius) {
+                // causing the bot to eat the pellet
                 if (bot.radius < 0.25) bot.radius += 0.00001; 
                 pellet.radius -= 0.001;
             }
         });
     });
+
     Object.values(players).forEach(player => {
+        // Moves the player based of their velocity
         player.x += player.velocity.x;
         player.y += player.velocity.y;
         // player.velocity.x -= Math.sign(player.velocity.x) * 0.0015;
@@ -141,19 +176,23 @@ const interval = setInterval(() => {
         //     player.velocity.y = 0;
         // }
 
+        // Checks if the player is outside the bounds of the map
         ["x", "y"].forEach((coordinate) => {
             if (player[coordinate] - player.radius < 0 ) {
+                // This teleports the player back within the bounds
                 player[coordinate] = player.radius;
-                player.velocity[coordinate] *= -0.0;
             } else if (player[coordinate] + player.radius > mapSize) {
-                player.velocity[coordinate] *= -0.0;
+                 // This teleports the player back within the bounds
                 player[coordinate] = mapSize - player.radius;
             }
         });
 
+        // Checking if two players are colliding
         Object.values(players).concat(bots).forEach(collidingPlayer => {
+            // Pythagorean theorem
             const distance = Math.sqrt((player.x - collidingPlayer.x) ** 2 + (player.y - collidingPlayer.y) ** 2);
             if (distance <= collidingPlayer.radius + player.radius) {
+                // Figuring out which player or bot is bigger
                 let [largerPlayer, smallerPlayer] = [undefined, undefined];
                 if (collidingPlayer.radius > player.radius) {
                     largerPlayer = collidingPlayer;
@@ -161,18 +200,8 @@ const interval = setInterval(() => {
                 } else if (collidingPlayer.radius < player.radius) {
                     largerPlayer = player;
                     smallerPlayer = collidingPlayer;
-                } else {
-                    // const tempVelocity = Object.assign({}, player.velocity);
-                    // player.velocity = collidingPlayer.velocity;
-                    // collidingPlayer.velocity = tempVelocity;
-                    // if (Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2) > Math.sqrt(collidingPlayer.velocity.x ** 2 + collidingPlayer.velocity.y ** 2)) {
-                    //     largerPlayer = player;
-                    //     smallerPlayer = collidingPlayer
-                    // } else if (Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2) < Math.sqrt(collidingPlayer.velocity.x ** 2 + collidingPlayer.velocity.y ** 2)){
-                    //     largerPlayer = collidingPlayer;
-                    //     smallerPlayer = player;
-                    // }
                 }
+                // Checking if their is a larger and smaller player in case they are the same size.
                 if (largerPlayer && smallerPlayer) {
                     if (largerPlayer.radius < 0.5) largerPlayer.radius += 0.001;
                     smallerPlayer.radius -= 0.001;
@@ -180,41 +209,57 @@ const interval = setInterval(() => {
             }
         });
 
+        // Eating pellets
         pellets.forEach(pellet => {
+            // Pythagorean theorem
             const distance = Math.sqrt((player.x - pellet.x) ** 2 + (player.y - pellet.y) ** 2);
             if (distance <= pellet.radius + player.radius) {
+                // The if statement here is smaller than it is for eating player which prevents you from gaining size from pellets once you have hit a certain size
                 if (player.radius < 0.25) player.radius += 0.0003; 
                 pellet.radius -= 0.003;
             }
         });
+
+        // removing any pellets or bots that have been eaten
         pellets = pellets.filter(p => p.radius > 0);
-        if (pellets.length < 20 * mapSize ** 2) pellets = [...Array(30 * mapSize ** 2 - pellets.length).fill().map(createPellet), ...pellets];
         bots = bots.filter(b => b.radius > 0);
+
+        // Filling the pellets and bots to their original size.
+        if (pellets.length < 20 * mapSize ** 2) pellets = [...Array(30 * mapSize ** 2 - pellets.length).fill().map(createPellet), ...pellets];
         if (bots.length < mapSize ** 2) bots = [...Array(mapSize ** 2 - bots.length).fill().map(createBot), ...bots];
     });
 
     // Detecting if a player has died because they have a radius of 0 or less.
     Object.values(players).forEach((player, index) => {
         if (player.radius <= 0) {
+            // This triggers a listener
             sockets[Object.keys(players)[index]].emit("playerDied", undefined);
 
             delete players[Object.keys(players)[index]];
         }
     });
+
+    // Sending the client the array of pellets so the client can draw them
     io.emit("pelletsUpdate", pellets);
+    // Sending the client a list of bots and players.
+    // I am able to send them both because the Bot class is an extension of the Player class so any methods or properties of the Player class that the client need will also be methods or properties of the Bot class
     io.emit("playersUpdate", Object.values(players).concat(bots).map(player => {
+        // Minimal info just simplifies the player object to only contain visual info and the player's id in order to have cyber security and to not send too much data
         return player.minimalInfo;
     }));
 }, 1000/120)
 
 const port = process.env.PORT || 2000;
 
+// Sending all the javascript and css files to the client
 app.use("/static", express.static(path.resolve(__dirname, "./static")));
 
+// Sending the index.html file to the client
 app.get("/*", (req, res, next) => {
     res.sendFile(path.resolve(__dirname, "./templates/index.html"))
 });
 
+// Assigning the server to listen on a port
 server.listen(port, () => {
     console.log(`\n\n\n Server started on port ${port}`);
 }).on('error', (e) => {

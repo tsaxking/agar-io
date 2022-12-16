@@ -1,0 +1,1 @@
+// This is for automated testing and or just testing stuff but I'm not doing quality programming and Javascript is a mid language so I haven't made any tests for my code yet.
