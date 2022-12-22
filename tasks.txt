@@ -1,0 +1,13 @@
+David:
+user connects => socket.io will assign players[socket.id] = {}
+
+user sets up username => socket.io will assign username to player
+
+
+
+
+Anant:
+user changes position => socket.io will emit position to all players
+(use mousemove)
+
+client receives positions => canvas is drawn
