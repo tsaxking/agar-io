@@ -12,8 +12,9 @@ class Player extends PolarCoordinatedObject {
      * @param {number} color.g how green the player should be (0 <= g < 256)
      * @param {number} color.b how blue the player should be (0 <= b < 256)
      * @param {number} [color.alpha] the transparency of the player (0-1)
+     * @param {string} [username] The username of the player. Defaults to "Default Username"
      */
-    constructor (x, y, radius, id, color) {
+    constructor (x, y, radius, id, color, username = "Default Username") {
         super(x, y);
 
         this.radius = radius;
@@ -21,6 +22,7 @@ class Player extends PolarCoordinatedObject {
         this.velocity = { x: 0, y: 0 }
         this.id = id;
         this.color = color;
+        this.username = username;
     }
 
     // Gets how fast the player can go based off their radius
@@ -30,8 +32,8 @@ class Player extends PolarCoordinatedObject {
 
     // Simplifies the player object to only contain visual info and the player's id in order to have cyber security and to not send too much data
     get minimalInfo () {
-        const { x, y, radius, id, color } = this;
-        return { x, y, radius, id, color };
+        const { x, y, radius, id, color, username } = this;
+        return { x, y, radius, id, color, username };
     }
 }
 

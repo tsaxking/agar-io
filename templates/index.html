@@ -31,7 +31,28 @@
     </head>
 
     <body>
-        <div id="canvas-container">
+        <div id = "sign-in" class = "d-none"> 
+            <button id = "username-button" class="btn btn-primary position-absolute">Change Username</button>
+            <div id = "username-modal" class="modal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Sign In</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="text" name="Username" id="username-input">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" id = "set-username-button">Set Username</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id = "canvas-container" class="d-none">
             <canvas id = "canvas"></canvas>
             <canvas id = "minimap-canvas"></canvas>
         </div>

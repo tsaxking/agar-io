@@ -1,10 +1,56 @@
 const socket = io();
 
+const usernameButton = document.getElementById("username-button");
+const usernameInput = document.getElementById("username-input");
+const setUsernameButton = document.getElementById("set-username-button");
+
+usernameButton.style.zIndex = 1;
+usernameButton.addEventListener("click", () => {
+    $("#username-modal").modal("show");
+});
+
+const usernameInputFocus = () => {
+    usernameInput.removeEventListener("focus", usernameInputFocus);
+    usernameInput.addEventListener("blur", usernameInputBlur);
+    
+    usernameInput.addEventListener("keydown", usernameInputKeydown);
+}
+
+const usernameInputBlur = () => {
+    usernameInput.removeEventListener("blur", usernameInputBlur);
+    usernameInput.addEventListener("focus", usernameInputFocus);
+
+    usernameInput.removeEventListener("keydown", usernameInputKeydown)
+}
+
+const usernameInputKeydown = (event) => {
+    if (event.code == "Enter") {
+        setUsername();
+    }
+}
+
+const setUsername = () => {
+    socket.emit("usernameChange", { username: usernameInput.value });
+    $("#username-modal").modal("hide");
+}
+
+usernameInput.addEventListener("focus", usernameInputFocus);
+
+setUsernameButton.addEventListener("click", setUsername);
+
 class Page {
-    constructor (name, components, onInterval) {
+    /**
+     * 
+     * @param {*} name 
+     * @param {*} components 
+     * @param {*} onInterval 
+     * @param {[String]} htmlElements An array of html selectors that will only appear when the page is selected
+     */
+    constructor (name, components, onInterval, htmlElements) {
         this.name = name;
         this.components = components;
         this.onInterval = onInterval;
+        this.htmlElements = htmlElements;
     }
     draw (canvas, scaleFactor) {
         try {
@@ -66,18 +112,18 @@ const pages = {
         }),
         new TextComponent(0.5, 0.5, 2, "black", 0.03, "Arial", "Join Game", true),
         new Rect(0.5, 0.5, -100, canvas.width, canvas.height, "rgba(127, 127, 127, 0.5)", true)
-    ], () => {}),
+    ], () => {}, ["#sign-in", "#canvas-container"]),
     game: new Page ("game", [
         bot
     ], () => {
         // This is runs every time a server sends the client a packet and the client is on the game page.
         // Check movement checks if the player has moved their mouse which prevents the client from sending redundant info to the server.
         if (mouse.checkMovement()) socket.emit("playerUpdate", { angle: mouse.angle });
-    })
+    }, ["#canvas-container"])
 }
 
-let currentPage = pages["main"];
-
+let currentPage; //= pages["main"];
+changePage("main");
 function clearCanvas(canvas) {
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -85,9 +131,14 @@ function clearCanvas(canvas) {
 
 function changePage(pageName) {
     // Add page change listeners here
-
-    //Changing the [age]
+    if (currentPage) {
+        if (currentPage.htmlElements) currentPage.htmlElements.forEach(el => document.querySelector(el).classList.add("d-none"));
+    }
+    
+    // Changing the page
     currentPage = pages[pageName];
+
+    currentPage.htmlElements.forEach(el => document.querySelector(el).classList.remove("d-none"));
 }
 
 socket.on("id", (id) => {
@@ -119,7 +170,7 @@ socket.on("pelletsUpdate", pellets => {
         const newX = p.x - bot.x + 0.5;
         const newY = p.y - bot.y + 0.5;
         minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 98, p.radius + 0.05, p.color));
-        if (newX < 0 || newX > 1.5 || newY > 1.5 || newY < 0) return;
+        if (newX < 0 || newX > 1 - p.radius || newY > 1 + p.radius || newY < 0) return;
         gameComponents.push(new Circle(newX, newY, 98, p.radius, p.color));
     });
 });
@@ -146,10 +197,11 @@ socket.on("playersUpdate", players => {
         minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 99, p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 0.75})`));
 
         // Removing all the players that aren't on your screen for performance reasons
-        if (newX < 0 || newX > 1.5 || newY > 1.5 || newY < 0) return;
+        if (newX < 0 || newX > 1 - p.radius || newY > 1 + p.radius || newY < 0) return;
         // Creating a new instance of the circle class and adding it to game components
         // (99 is the z value)
         gameComponents.push(new Circle(newX, newY, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 1})`));
+        gameComponents.push(new TextComponent(newX, newY - p.radius, 100, "rgb(0, 0, 0)", 0.01, "Arial", p.username, true))
     });
     // pages["game"].components.push(player);
     interval();
