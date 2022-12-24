@@ -1,4 +1,5 @@
-const { Router } = require("express");
+const express = { Router } = require("express");
+const path = require("path");
 const router = new Router();
 // Getting Classes from other JS files
 const { Bot, Player, PolarCoordinatedObject } = require("./server-functions-and-classes/bot.js");
@@ -261,4 +262,17 @@ const initialize = (io) => {
     }, 1000/120);
 }
 
-module.exports = { agarRouter: router, initialize }
+router.use("/*", (req, res, next) => {
+    console.log(req.url);
+    next();
+});
+
+// Sending all the javascript and css files to the client
+router.use("/static", express.static(path.resolve(__dirname, "./static")));
+
+// Sending the index.html file to the client
+router.get("/*", (req, res, next) => {
+    res.sendFile(path.resolve(__dirname, "./templates/index.html"));
+});
+
+module.exports = { agarRouter: router, initialize };

@@ -40,23 +40,22 @@ class Bot extends Player {
             }
         });
 
-        let closestPellet;
-        let closestPelletDistance;
-
-        // Finds the closest pellet
-        pellets.forEach(pellet => {
-            const pelletDistance = Math.sqrt((pellet.x - this.x) ** 2 + (pellet.y - this.y) ** 2);
-            if (!closestPelletDistance || pelletDistance < closestPelletDistance) {
-                closestPellet = pellet;
-                closestPelletDistance = pelletDistance;
-            }
-        });
-
         // If no players are playing the server this code will still run so that's why it detects whether there is a closest player.
         if (closestPlayer) {
             this.goTowardsObject(closestPlayer);
         // Checking if there are any players so that the bots aren't constantly getting larger while the server is just running
         } else if (players.length > 0) {
+            let closestPellet;
+            let closestPelletDistance;
+
+            // Finds the closest pellet
+            pellets.forEach(pellet => {
+                const pelletDistance = Math.sqrt((pellet.x - this.x) ** 2 + (pellet.y - this.y) ** 2);
+                if (!closestPelletDistance || pelletDistance < closestPelletDistance) {
+                    closestPellet = pellet;
+                    closestPelletDistance = pelletDistance;
+                }
+            });
             this.goTowardsObject(closestPellet);
         }
     }
