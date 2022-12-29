@@ -43,13 +43,11 @@ class Page {
      * 
      * @param {*} name 
      * @param {*} components 
-     * @param {*} onInterval 
      * @param {[String]} htmlElements An array of html selectors that will only appear when the page is selected
      */
-    constructor (name, components, onInterval, htmlElements) {
+    constructor (name, components, htmlElements) {
         this.name = name;
         this.components = components;
-        this.onInterval = onInterval;
         this.htmlElements = htmlElements;
     }
     draw (canvas, scaleFactor) {
@@ -102,7 +100,7 @@ window.addEventListener("resize", () => {
 const canvasBackground = new Grid(0, 0, -1000, 5, 5, "rgb(225, 225, 225)", false, 150);
 const minimapBackground = new Rect(0, 0, -999, 10, 10, "rgb(200, 200, 200)", false);
 
-const bot = new Circle(0.5, 0.5, 100, 0.01, "rgb(125, 125, 125)");
+const player = new Circle(0.5, 0.5, 100, 0.01, "rgb(125, 125, 125)");
 let playerId = -1;
 
 const pages = {
@@ -112,14 +110,10 @@ const pages = {
         }),
         new TextComponent(0.5, 0.5, 2, "black", 0.03, "Arial", "Join Game", true),
         new Rect(0.5, 0.5, -100, canvas.width, canvas.height, "rgba(127, 127, 127, 0.5)", true)
-    ], () => {}, ["#sign-in", "#canvas-container"]),
+    ], ["#sign-in", "#canvas-container"]),
     game: new Page ("game", [
-        bot
-    ], () => {
-        // This is runs every time a server sends the client a packet and the client is on the game page.
-        // Check movement checks if the player has moved their mouse which prevents the client from sending redundant info to the server.
-        if (mouse.checkMovement()) socket.emit("playerUpdate", { angle: mouse.angle });
-    }, ["#canvas-container"])
+        player
+    ], ["#canvas-container"])
 }
 
 let currentPage; //= pages["main"];
@@ -151,6 +145,7 @@ socket.on("playerDied", (_) => {
 
 let receiveStart;
 let totalReceiveFrames = 0, receiveRate;
+let preventRedraw = false;
 socket.on("pelletsUpdate", pellets => {
     if (!receiveStart) receiveStart = Date.now();
     receiveRate = 1000 * totalReceiveFrames/(Date.now() - receiveStart);
@@ -163,15 +158,17 @@ socket.on("pelletsUpdate", pellets => {
         pages["game"].components = [];
         minimapComponents = [];
         totalReceiveFrames ++;
+        preventRedraw = true;
     }
     
     const gameComponents = pages["game"].components;
     pellets.forEach(p => {
-        const newX = p.x - bot.x + 0.5;
-        const newY = p.y - bot.y + 0.5;
-        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 98, p.radius + 0.05, p.color));
+        const newX = p.x - player.x + 0.5;
+        const newY = p.y - player.y + 0.5;
+
+        minimapComponents.push(new GameCircle(newX + 4.5, newY + 4.5, 98, p.radius + 0.05, p.color, p.x, p.y));
         if (newX < 0 || newX > 1 - p.radius || newY > 1 + p.radius || newY < 0) return;
-        gameComponents.push(new Circle(newX, newY, 98, p.radius, p.color));
+        gameComponents.push(new GameCircle(newX, newY, 98, p.radius, p.color, p.x, p.y));
     });
 });
 
@@ -179,9 +176,10 @@ socket.on("playersUpdate", players => {
     // Finds the player with the same id as the client so that it can set the reference point to that player's x and y
     const thisPlayer = players.find(p => p.id == playerId);
     if (thisPlayer) {
-        bot.x = thisPlayer.x;
-        bot.y = thisPlayer.y;
-        bot.radius = thisPlayer.radius;
+        player.x = thisPlayer.x;
+        player.y = thisPlayer.y;
+        player.velocity = thisPlayer.velocity;
+        player.radius = thisPlayer.radius;
     }
 
     // This is the same as Canvas.shapes I'm just using a weird data structure
@@ -190,21 +188,25 @@ socket.on("playersUpdate", players => {
     players.forEach(p => {
         // Offsetting the player because of the viewpoint
         // Note that the x and y values are normalized to the screen size so 0.5 is halfway across the screen
-        const newX = p.x - bot.x + 0.5;
-        const newY = p.y - bot.y + 0.5;
+        const newX = p.x - player.x + 0.5;
+        const newY = p.y - player.y + 0.5;
 
         // Ignore the minimap thing
-        minimapComponents.push(new Circle(newX + 4.5, newY + 4.5, 99, p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 0.75})`));
+        minimapComponents.push(new Player(newX + 4.5, newY + 4.5, 99, p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 0.75})`, p.x, p.y, p.velocity, p.username));
 
         // Removing all the players that aren't on your screen for performance reasons
         if (newX < 0 || newX > 1 - p.radius || newY > 1 + p.radius || newY < 0) return;
         // Creating a new instance of the circle class and adding it to game components
         // (99 is the z value)
-        gameComponents.push(new Circle(newX, newY, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 1})`));
-        gameComponents.push(new TextComponent(newX, newY - p.radius, 100, "rgb(0, 0, 0)", 0.01, "Arial", p.username, true))
+        gameComponents.push(new Player(newX, newY, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 1})`, p.x, p.y, p.velocity, p.username));
     });
     // pages["game"].components.push(player);
-    interval();
+
+    preventRedraw = false;
+    if (currentPage.name = "game") {
+        // Check movement checks if the player has moved their mouse which prevents the client from sending redundant info to the server.
+        if (mouse.checkMovement()) socket.emit("playerUpdate", { angle: mouse.angle });
+    } 
 });
 
 document.addEventListener("click", (event) => {
@@ -246,22 +248,64 @@ const start = Date.now();
 const interval = () => {
     totalFrames ++;
     refreshRate = 1000 * totalFrames/(Date.now() - start);
-    clearCanvas(canvas);
-    clearCanvas(minimap);
+    if (!preventRedraw) {
+        clearCanvas(canvas);
+        clearCanvas(minimap);
+        if (player && player.velocity) {
+            if (mouse.moved) {
+                const cartesian = Player.cartesian(mouse.angle, Player.polar(player.velocity.x, player.velocity.y).magnitude);
+                player.velocity.x = cartesian.x;
+                player.velocity.y = cartesian.y;
+            }
+            player.x += player.velocity.x;
+            player.y += player.velocity.y;
+        }
 
-    canvasBackground.x = 0.5 - bot.x;
-    canvasBackground.y = 0.5 - bot.y;
-    canvasBackground.draw(canvas, largerWindowDimension);
-    currentPage.draw(canvas, largerWindowDimension);
+        
+        
+        currentPage.components.forEach(component => {
+            if (component.id === playerId) { 
+                component.actualX = player.x;
+                component.actualY = player.y;
+            }
 
-    minimapBackground.draw(minimap, largerWindowDimension/100);
-    minimapComponents.forEach(c => {
-        c.draw(minimap, largerWindowDimension/100);
-    });
+            if (component.velocity) {
+                component.actualX += component.velocity.x;
+                component.actualY += component.velocity.y;
+            }
 
-    currentPage.onInterval();
-    // requestAnimationFrame(interval);
+            // TODO: use prototypes and stuff to do this
+            if (component.isGameComponent) component.updateCoordinates(player, 0.5);
+        });
+
+        minimapComponents.forEach(component => {
+            console.log(component.id, player.id);
+            if (component.id === playerId) { 
+                component.actualX = player.x;
+                component.actualY = player.y;
+            }
+
+            if (component.velocity) {
+                component.actualX += component.velocity.x;
+                component.actualY += component.velocity.y;
+            }
+
+            // TODO: use prototypes and stuff to do this
+            if (component.isGameComponent) component.updateCoordinates(player, 5);
+        });
+        canvasBackground.x = 0.5 - player.x;
+        canvasBackground.y = 0.5 - player.y;
+
+        canvasBackground.draw(canvas, largerWindowDimension);
+        currentPage.draw(canvas, largerWindowDimension);
+
+        minimapBackground.draw(minimap, largerWindowDimension/100);
+        minimapComponents.forEach(c => {
+            c.draw(minimap, largerWindowDimension/100);
+        });
+    }
+    requestAnimationFrame(interval);
 }
-// interval();
+interval();
 
 socket.emit("positionUpdate", { x:1, y: 2})

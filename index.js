@@ -4,6 +4,8 @@ const router = new Router();
 // Getting Classes from other JS files
 const { Bot, Player, PolarCoordinatedObject } = require("./server-functions-and-classes/bot.js");
 const { Pellet } = require("./server-functions-and-classes/pellet.js");
+const tickrate = 60; // How many times per second this runs the interval that moves players and checks collision
+const sendrate = 10; // How many times per second the server sends info to the client
 
 const initialize = (io) => {
     // Map Size determines how wide the map is relative to a client's screen, so if mapsize = 1 then the map would be the size of each client's screen
@@ -16,7 +18,7 @@ const initialize = (io) => {
         // Changes player count by 1 so that the new player's id is different then the previous player
         playerCount ++;
         // See player.js for info on the parameters
-        return new Player(Math.random() * mapSize, Math.random() * mapSize, 0.02, playerCount, { r: randomColor(), g: randomColor(), b: randomColor(), alpha: 0.75 }, username);
+        return new Player(Math.random() * mapSize, Math.random() * mapSize, 0.02, playerCount, { r: randomColor(), g: randomColor(), b: randomColor(), alpha: 0.75 }, tickrate, username);
     };
 
     // Generates a random number between 0 and 256
@@ -45,7 +47,7 @@ const initialize = (io) => {
         const g = -3060 * (i - 1/3) ** 2 + 340;
         const b = -4950 * (i - 0.58 - 1/300) ** 2 + 286.875;
 
-        return new Bot(x, y, 0.02, { r, g, b, alpha: 0.25 }, "Bot");
+        return new Bot(x, y, 0.02, { r, g, b, alpha: 0.25 }, tickrate, "Bot");
     };
 
     // Objects that store each player and socket in the form of "<socket id>" : "<player/socket>"
@@ -250,7 +252,9 @@ const initialize = (io) => {
                 delete players[Object.keys(players)[index]];
             }
         });
+    }, 1000/tickrate);
 
+    const sendInterval = setInterval(() => {
         // Sending the client the array of pellets so the client can draw them
         io.emit("pelletsUpdate", pellets);
         // Sending the client a list of bots and players.
@@ -259,7 +263,7 @@ const initialize = (io) => {
             // Minimal info just simplifies the player object to only contain visual info and the player's id in order to have cyber security and to not send too much data
             return player.minimalInfo;
         }));
-    }, 1000/120);
+    }, 1000/sendrate);
 }
 
 router.use("/*", (req, res, next) => {

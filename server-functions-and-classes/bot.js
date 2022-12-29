@@ -14,8 +14,8 @@ class Bot extends Player {
      * @param {number} [color.alpha] the transparency of the bot (0-1)
      * @param {string} [username] The username of the player. Defaults to "Bot"
      */
-    constructor(x, y, radius, color, username = "Bot") {
-        super(x, y, radius, -1, color, username);
+    constructor(x, y, radius, color, tickrate, username = "Bot") {
+        super(x, y, radius, -1, color, tickrate, username);
     }
 
     /**
