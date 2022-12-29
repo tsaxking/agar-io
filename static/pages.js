@@ -279,7 +279,6 @@ const interval = () => {
         });
 
         minimapComponents.forEach(component => {
-            console.log(component.id, player.id);
             if (component.id === playerId) { 
                 component.actualX = player.x;
                 component.actualY = player.y;
