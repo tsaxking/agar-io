@@ -4,9 +4,12 @@ const usernameButton = document.getElementById("username-button");
 const usernameInput = document.getElementById("username-input");
 const setUsernameButton = document.getElementById("set-username-button");
 let mapSize = 1;
+let baseSpeed = 1;
 
-socket.on("mapSize", serverMapSize => {
+socket.on("staticInfo", ({ mapSize: serverMapSize, baseSpeed: serverBaseSpeed }) => {
     mapSize = serverMapSize;
+    baseSpeed = serverBaseSpeed;
+    player.baseSpeed = serverBaseSpeed;
 });
 
 usernameButton.style.zIndex = 1;
@@ -115,12 +118,12 @@ window.addEventListener("resize", () => {
 const canvasBackground = new Grid(0, 0, -1000, 5, 5, "rgb(225, 225, 225)", false, 150);
 const minimapBackground = new Rect(0, 0, -999, 10, 10, "rgb(200, 200, 200)", false);
 
-const player = new Circle(0.5, 0.5, 100, 0.01, "rgb(125, 125, 125)");
-let playerId = -1;
+const player = new Player(0.5, 0.5, 100, 0.01, "rgb(125, 125, 125)", 0.5, 0.5, { x:0, y:0 }, "", -1, baseSpeed);
 
 const pages = {
     main: new Page ("main", [
         new Button (0.5, 0.5, 1, 0.25, 0.25, "rgb(125, 125, 125)", true, () => {
+            socket.emit("playerUpdate", { angle: mouse.angle });
             changePage("game");
         }),
         new TextComponent(0.5, 0.5, 2, "black", 0.03, "Arial", "Join Game", true),
@@ -151,7 +154,7 @@ function changePage(pageName) {
 }
 
 socket.on("id", (id) => {
-    playerId = id;
+    player.id = id;
 });
 
 socket.on("playerDied", (_) => {
@@ -169,7 +172,7 @@ socket.on("pelletsUpdate", pellets => {
     minimapComponents = [];
     totalReceiveFrames ++;
     preventRedraw = true;    
-    
+
     const gameComponents = pages["game"].components;
     pellets.forEach(p => {
         const newX = p.x - player.x;
@@ -183,12 +186,13 @@ socket.on("pelletsUpdate", pellets => {
 
 socket.on("playersUpdate", players => {
     // Finds the player with the same id as the client so that it can set the reference point to that player's x and y
-    const thisPlayer = players.find(p => p.id == playerId);
+    const thisPlayer = players.find(p => p.id == player.id);
     if (thisPlayer) {
         player.x = thisPlayer.x;
         player.y = thisPlayer.y;
         player.velocity = thisPlayer.velocity;
         player.radius = thisPlayer.radius;
+        // player.baseSpeed = thisPlayer.baseSpeed;
     }
 
     // This is the same as Canvas.shapes I'm just using a weird data structure
@@ -200,14 +204,15 @@ socket.on("playersUpdate", players => {
         const newX = p.x - player.x;
         const newY = p.y - player.y;
 
+        
         // Ignore the minimap thing
-        minimapComponents.push(new Player(newX + mapSize, newY + mapSize, 99,  p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 0.75})`, p.x, p.y, p.velocity, p.username, p.id));
+        minimapComponents.push(new Player(newX + mapSize, newY + mapSize, 99,  p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 0.75})`, p.x, p.y, p.velocity, p.username, p.id, refreshRate));
 
         // Removing all the players that aren't on your screen for performance reasons
         if (newX + 0.5 < 0 || newX  + 0.5 > 1 - p.radius || newY + 0.5 > 1 + p.radius || newY + 0.5< 0) return;
         // Creating a new instance of the circle class and adding it to game components
         // (99 is the z value)
-        gameComponents.push(new Player(newX + 0.5, newY + 0.5, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 1})`, p.x, p.y, p.velocity, p.username, p.id));
+        gameComponents.push(new Player(newX + 0.5, newY + 0.5, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 1})`, p.x, p.y, p.velocity, p.username, p.id, refreshRate));
     });
     // pages["game"].components.push(player);
 
@@ -257,16 +262,43 @@ const start = Date.now();
 const interval = () => {
     totalFrames ++;
     refreshRate = 1000 * totalFrames/(Date.now() - start);
+    console.log(refreshRate);
     if (!preventRedraw) {
-        console.log(currentPage.components);
         clearCanvas(canvas);
         clearCanvas(minimap);
         if (player && player.velocity) {
             if (mouse.moved) {
-                const cartesian = Player.cartesian(mouse.angle, Player.polar(player.velocity.x, player.velocity.y).magnitude);
+                // console.log(player.speed);
+
+                const cartesian = Player.cartesian(mouse.angle, player.speed);
                 player.velocity.x = cartesian.x;
                 player.velocity.y = cartesian.y;
             }
+
+            // Checks if the player is eating anything
+            pages["game"].components.forEach(component => {
+                // Making sure it doesn't eat itself
+                if (component.id == player.id) return;
+                // Pythagorean theorem
+                const distance = Math.sqrt((player.x - component.actualX) ** 2 + (player.y - component.actualY) ** 2);
+
+                if (distance <= component.radius + player.radius) {
+                    // Figuring out which player, pellet or bot is bigger
+                    let [largerPlayer, smallerPlayer] = [undefined, undefined];
+                    if (component.radius > player.radius) {
+                        largerPlayer = component;
+                        smallerPlayer = player;
+                    } else if (component.radius < player.radius) {
+                        largerPlayer = player;
+                        smallerPlayer = component;
+                    }
+                    // Checking if their is a larger and smaller player in case they are the same size.
+                    if (largerPlayer && smallerPlayer) {
+                        if (largerPlayer.radius < 0.5) largerPlayer.radius += 0.001;
+                        smallerPlayer.radius -= 0.001;
+                    }
+                }
+            });
 
             player.x += player.velocity.x;
             player.y += player.velocity.y;
@@ -283,34 +315,7 @@ const interval = () => {
         }
         
         currentPage.components.forEach(component => {
-            if (component.velocity) {
-                component.actualX += component.velocity.x;
-                component.actualY += component.velocity.y;
-            }
-
-            // TODO: use prototypes and stuff to do this
-            if (component.isGameComponent) {
-                // Checks if the player is outside the bounds of the map
-                ["x", "y"].forEach((coordinate) => {
-                    if (component[coordinate] - component.radius < 0 ) {
-                        // This teleports the player back within the bounds
-                        component[coordinate] = component.radius;
-                    } else if (component[coordinate] + component.radius > mapSize) {
-                        // This teleports the player back within the bounds
-                        component[coordinate] = mapSize - component.radius;
-                    }
-                });
-
-                if (component.id === playerId) { 
-                    component.actualX = player.x;
-                    component.actualY = player.y;
-                }
-                component.updateCoordinates(player, 0.5);
-            }
-        });
-
-        minimapComponents.forEach(component => {
-            if (component.id === playerId) { 
+            if (component.id === player.id) { 
                 component.actualX = player.x;
                 component.actualY = player.y;
             }
@@ -327,25 +332,44 @@ const interval = () => {
                     if (component[coordinate] - component.radius < 0 ) {
                         // This teleports the player back within the bounds
                         component[coordinate] = component.radius;
-                        
-                        if (component.velocity) {
-                            component.velocity.x = 0;
-                            component.velocity.y = 0;
-                        }
                     } else if (component[coordinate] + component.radius > mapSize) {
                         // This teleports the player back within the bounds
                         component[coordinate] = mapSize - component.radius;
+                    }
+                });
 
-                        if (component.velocity) {
-                            component.velocity.x = 0;
-                            component.velocity.y = 0;
-                        }
+                component.updateCoordinates(player, 0.5);
+            }
+        });
+
+        minimapComponents.forEach(component => {
+            if (component.id === player.id) { 
+                component.actualX = player.x;
+                component.actualY = player.y;
+            }
+
+            if (component.velocity) {
+                component.actualX += component.velocity.x;
+                component.actualY += component.velocity.y;
+            }
+
+            // TODO: use prototypes and stuff to do this
+            if (component.isGameComponent) {
+                // Checks if the player is outside the bounds of the map
+                ["actualX", "actualY"].forEach((coordinate) => {
+                    if (component[coordinate] - component.radius < 0 ) {
+                        // This teleports the player back within the bounds
+                        component[coordinate] = component.radius;
+                    } else if (component[coordinate] + component.radius > mapSize) {
+                        // This teleports the player back within the bounds
+                        component[coordinate] = mapSize - component.radius;
                     }
                 });
 
                 component.updateCoordinates(player, mapSize);
             }
         });
+
         canvasBackground.x = 0.5 - player.x;
         canvasBackground.y = 0.5 - player.y;
 
@@ -357,8 +381,138 @@ const interval = () => {
             c.draw(minimap, largerWindowDimension/100);
         });
     }
+    // requestAnimationFrame(interval);
     requestAnimationFrame(interval);
 }
 interval();
+
+// This code doesn't work
+// const tickInterval = (() => {
+//     totalFrames ++;
+//     refreshRate = 1000 * totalFrames/(Date.now() - start);
+//     console.log(refreshRate);
+//     if (!preventRedraw) {
+//         clearCanvas(canvas);
+//         clearCanvas(minimap);
+//         if (player && player.velocity) {
+//             if (mouse.moved) {
+//                 // console.log(player.speed);
+
+//                 const cartesian = Player.cartesian(mouse.angle, player.speed);
+//                 player.velocity.x = cartesian.x;
+//                 player.velocity.y = cartesian.y;
+//             }
+
+//             // Checks if the player is eating anything
+//             pages["game"].components.forEach(component => {
+//                 // Making sure it doesn't eat itself
+//                 if (component.id == player.id) return;
+//                 // Pythagorean theorem
+//                 const distance = Math.sqrt((player.x - component.actualX) ** 2 + (player.y - component.actualY) ** 2);
+
+//                 if (distance <= component.radius + player.radius) {
+//                     // Figuring out which player, pellet or bot is bigger
+//                     let [largerPlayer, smallerPlayer] = [undefined, undefined];
+//                     if (component.radius > player.radius) {
+//                         largerPlayer = component;
+//                         smallerPlayer = player;
+//                     } else if (component.radius < player.radius) {
+//                         largerPlayer = player;
+//                         smallerPlayer = component;
+//                     }
+//                     // Checking if their is a larger and smaller player in case they are the same size.
+//                     if (largerPlayer && smallerPlayer) {
+//                         if (largerPlayer.radius < 0.5) largerPlayer.radius += 0.001;
+//                         smallerPlayer.radius -= 0.001;
+//                     }
+//                 }
+//             });
+
+//             player.x += player.velocity.x;
+//             player.y += player.velocity.y;
+            
+//             ["x", "y"].forEach((coordinate) => {
+//                 if (player[coordinate] - player.radius < 0 ) {
+//                     // This teleports the player back within the bounds
+//                     player[coordinate] = player.radius;
+//                 } else if (player[coordinate] + player.radius > mapSize) {
+//                     // This teleports the player back within the bounds
+//                     player[coordinate] = mapSize - player.radius;
+//                 }
+//             });
+//         }
+        
+//         currentPage.components.forEach(component => {
+//             if (component.id === player.id) { 
+//                 component.actualX = player.x;
+//                 component.actualY = player.y;
+//             }
+
+//             if (component.velocity) {
+//                 component.actualX += component.velocity.x;
+//                 component.actualY += component.velocity.y;
+//             }
+
+//             // TODO: use prototypes and stuff to do this
+//             if (component.isGameComponent) {
+//                 // Checks if the player is outside the bounds of the map
+//                 ["actualX", "actualY"].forEach((coordinate) => {
+//                     if (component[coordinate] - component.radius < 0 ) {
+//                         // This teleports the player back within the bounds
+//                         component[coordinate] = component.radius;
+//                     } else if (component[coordinate] + component.radius > mapSize) {
+//                         // This teleports the player back within the bounds
+//                         component[coordinate] = mapSize - component.radius;
+//                     }
+//                 });
+
+//                 component.updateCoordinates(player, 0.5);
+//             }
+//         });
+
+//         minimapComponents.forEach(component => {
+//             if (component.id === player.id) { 
+//                 component.actualX = player.x;
+//                 component.actualY = player.y;
+//             }
+
+//             if (component.velocity) {
+//                 component.actualX += component.velocity.x;
+//                 component.actualY += component.velocity.y;
+//             }
+
+//             // TODO: use prototypes and stuff to do this
+//             if (component.isGameComponent) {
+//                 // Checks if the player is outside the bounds of the map
+//                 ["actualX", "actualY"].forEach((coordinate) => {
+//                     if (component[coordinate] - component.radius < 0 ) {
+//                         // This teleports the player back within the bounds
+//                         component[coordinate] = component.radius;
+//                     } else if (component[coordinate] + component.radius > mapSize) {
+//                         // This teleports the player back within the bounds
+//                         component[coordinate] = mapSize - component.radius;
+//                     }
+//                 });
+
+//                 component.updateCoordinates(player, mapSize);
+//             }
+//         });
+
+//         canvasBackground.x = 0.5 - player.x;
+//         canvasBackground.y = 0.5 - player.y;
+
+//         canvasBackground.draw(canvas, largerWindowDimension);
+//         currentPage.draw(canvas, largerWindowDimension);
+
+//         minimapBackground.draw(minimap, largerWindowDimension/100);
+//         minimapComponents.forEach(c => {
+//             c.draw(minimap, largerWindowDimension/100);
+//         });
+//     }
+//     // requestAnimationFrame(interval);
+//     setTimeout(tickInterval, 1000/player.baseSpeed);
+// });
+
+// tickInterval();c
 
 socket.emit("positionUpdate", { x:1, y: 2 })

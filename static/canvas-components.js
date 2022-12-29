@@ -290,7 +290,7 @@ class Circle extends Component {
         // X and Y offset are to make the circle centered
         // ctx.arc(scaledX - scaledRadius/2, scaledY - scaledRadius/2, scaledRadius, 0, Math.PI * 2);
         if (scaledRadius < 0) {
-            console.error("circle radius less then 0: ", scaledRadius);
+            console.error("circle radius less then 0");//: ", scaledRadius);
             ctx.arc(scaledX, scaledY, 0, 0, Math.PI * 2);
         } else {
             ctx.arc(scaledX, scaledY, scaledRadius, 0, Math.PI * 2);
@@ -337,11 +337,12 @@ class Player extends GameCircle {
     }
 
 
-    constructor(x, y, z, radius, color, actualX, actualY, velocity, username, id) {
+    constructor(x, y, z, radius, color, actualX, actualY, velocity, username, id, baseSpeed) {
         super (x, y, z, radius, color, actualX, actualY);
         this.velocity = velocity;
         this.username = username;
         this.id = id;
+        this.baseSpeed = baseSpeed;
     }
     
     get text () {
@@ -356,6 +357,10 @@ class Player extends GameCircle {
     // Finds the distance between this object and the orgin
     get magnitude() {
         return this.x/Math.cos(this.angle);
+    }
+
+    get speed () {
+        return 0.9/this.baseSpeed - (this.radius/100);
     }
 
     draw(canvas, scaleFactor) {

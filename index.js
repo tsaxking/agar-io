@@ -5,7 +5,7 @@ const router = new Router();
 const { Bot, Player, PolarCoordinatedObject } = require("./server-functions-and-classes/bot.js");
 const { Pellet } = require("./server-functions-and-classes/pellet.js");
 const tickrate = 60; // How many times per second this runs the interval that moves players and checks collision
-const sendrate = 10; // How many times per second the server sends info to the client
+const sendrate = 1; // How many times per second the server sends info to the client
 
 
 const tick = 8; // ms
@@ -128,7 +128,7 @@ const initialize = (io) => {
     io.on("connect", (socket) => {
         console.log('New user has connected:', socket.id);
         
-        socket.emit("mapSize", mapSize);
+        socket.emit("staticInfo", ({ mapSize, baseSpeed: tickrate }));
 
         // Angles is the angle of their mouse relative to the center of their screen
         socket.on("playerUpdate", ({ angle }) => { // send every 1000ms => { path, velocity, position, interactions: { pellets, players } }
