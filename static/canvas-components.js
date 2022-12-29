@@ -85,22 +85,25 @@ class Grid extends Rect {
         ctx.strokeStyle = `rgb(0, 0, 0)`;
 
         for (let i = scaledX; i <= scaledX + scaleFactor * this.width; i += spacing) {
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(i, scaledY);
-            ctx.lineTo(i, scaledY + scaleFactor *this.width);
-            ctx.closePath();
-            ctx.stroke();
+            // ctx.lineWidth = 1;
+            // ctx.beginPath();
+            // ctx.moveTo(i, scaledY);
+            // ctx.lineTo(i, scaledY + scaleFactor *this.width);
+            // ctx.closePath();
+            // ctx.stroke();
+
+            for (let j = scaledY; j <= scaledY + scaleFactor * this.width; j += spacing) {
+                // ctx.lineWidth = 1;
+                // ctx.beginPath();
+                // ctx.moveTo(scaledX, i);
+                // ctx.lineTo(scaledX + scaleFactor * this.width, i);
+                // ctx.closePath();
+                // ctx.stroke();
+                new Circle(i, j, 10, spacing * 0.1, "rgba(200, 200, 200, 0.75)").draw(canvas, 1);
+            }
         }
 
-        for (let i = scaledY ; i <= scaledY + scaleFactor * this.width; i += spacing) {
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(scaledX, i);
-            ctx.lineTo(scaledX + scaleFactor * this.width, i);
-            ctx.closePath();
-            ctx.stroke();
-        }
+        
     }
 }
 
@@ -334,10 +337,11 @@ class Player extends GameCircle {
     }
 
 
-    constructor(x, y, z, radius, color, actualX, actualY, velocity, username) {
+    constructor(x, y, z, radius, color, actualX, actualY, velocity, username, id) {
         super (x, y, z, radius, color, actualX, actualY);
         this.velocity = velocity;
         this.username = username;
+        this.id = id;
     }
     
     get text () {

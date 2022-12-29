@@ -63,6 +63,8 @@ const initialize = (io) => {
     io.on("connect", (socket) => {
         console.log('New user has connected:', socket.id);
         
+        socket.emit("mapSize", mapSize);
+
         // Angles is the angle of their mouse relative to the center of their screen
         socket.on("playerUpdate", ({ angle }) => {
             // Gets the exiting player data from an object stored on the server
@@ -106,7 +108,13 @@ const initialize = (io) => {
         });
 
         socket.on("usernameChange", ({ username }) => {
-            usernames[socket.id] = username;
+            if (!Object.values(usernames).includes(username)) {
+                usernames[socket.id] = username;
+                socket.emit("usernameChangeResult", true);
+            } else {
+                socket.emit("usernameChangeResult", false);
+            }
+            
         });
 
         // Triggers when a user leaves the page or reloads
