@@ -7,6 +7,59 @@ const { Pellet } = require("./server-functions-and-classes/pellet.js");
 const tickrate = 60; // How many times per second this runs the interval that moves players and checks collision
 const sendrate = 10; // How many times per second the server sends info to the client
 
+
+const tick = 8; // ms
+
+// client simulate every tick
+// client simulate every info from server
+// server simulate every request
+// send info from client to server every 128 ticks
+// send info from server to client every 128 ticks
+
+/*
+    Server:
+        {
+            nearbyPlayers: { // every 128 ticks
+                <id>: [x, y, velocity],
+                <id>: [x, y, velocity],
+                <id>: [x, y, velocity]
+            },
+            allPlayers: { // every 512 ticks
+                <id>: [x, y, velocity],
+                <id>: [x, y, velocity],
+                <id>: [x, y, velocity]
+            },
+            pellets: { // every 128 ticks
+                new: {
+                    <id>: [x, y, color],
+                    <id>: [x, y, color],
+                    <id>: [x, y, color],
+                    <id>: [x, y, color]
+                },
+                remove: [
+                    <id>
+                ]
+            }
+        }
+
+    Client:
+        {
+            path: [
+                angle, // every 8 ticks
+            ],
+            velocity: [dx, dy], // (arctan(dx/dy))
+            position: [x, y],
+            interactions: {
+                pellets: [
+                    <id>
+                ],
+                players: [
+                    <id>
+                ]
+            }
+        }
+*/
+
 const initialize = (io) => {
     // Map Size determines how wide the map is relative to a client's screen, so if mapsize = 1 then the map would be the size of each client's screen
     const mapSize = 5;
@@ -16,9 +69,21 @@ const initialize = (io) => {
     // Function for creating new players
     const defaultPlayer = (username) => {
         // Changes player count by 1 so that the new player's id is different then the previous player
-        playerCount ++;
+        playerCount++;
         // See player.js for info on the parameters
-        return new Player(Math.random() * mapSize, Math.random() * mapSize, 0.02, playerCount, { r: randomColor(), g: randomColor(), b: randomColor(), alpha: 0.75 }, tickrate, username);
+        return new Player(
+            Math.random() * mapSize,
+            Math.random() * mapSize,
+            0.02,
+            playerCount, {
+                r: randomColor(),
+                g: randomColor(),
+                b: randomColor(),
+                alpha: 0.75
+            },
+            tickrate,
+            username
+        );
     };
 
     // Generates a random number between 0 and 256
@@ -29,10 +94,10 @@ const initialize = (io) => {
         const x = Math.random() * mapSize;
         const y = Math.random() * mapSize;
         // Took the formula for rainbow coloring from this graph: https://www.desmos.com/calculator/xfg4dalr80;
-        const i = /*(*/(x + y)/(2 * mapSize)// + Date.now()/1000) % 1;
+        const i = /*(*/ (x + y) / (2 * mapSize) // + Date.now()/1000) % 1;
         const r = 3060 * (i - 0.5) ** 2 - 85;
-        const g = -3060 * (i - 1/3) ** 2 + 340;
-        const b = -4950 * (i - 0.58 - 1/300) ** 2 + 286.875;
+        const g = -3060 * (i - 1 / 3) ** 2 + 340;
+        const b = -4950 * (i - 0.58 - 1 / 300) ** 2 + 286.875;
 
         return new Pellet(x, y, `rgb(${r}, ${g}, ${b})`);
     };
@@ -42,10 +107,10 @@ const initialize = (io) => {
         const x = Math.random() * mapSize;
         const y = Math.random() * mapSize;
         // Took the formula for rainbow coloring from this graph: https://www.desmos.com/calculator/xfg4dalr80;
-        const i = /*(*/(x + y)/(2 * mapSize)// + Date.now()/1000) % 1;
+        const i = /*(*/ (x + y) / (2 * mapSize) // + Date.now()/1000) % 1;
         const r = 3060 * (i - 0.5) ** 2 - 85;
-        const g = -3060 * (i - 1/3) ** 2 + 340;
-        const b = -4950 * (i - 0.58 - 1/300) ** 2 + 286.875;
+        const g = -3060 * (i - 1 / 3) ** 2 + 340;
+        const b = -4950 * (i - 0.58 - 1 / 300) ** 2 + 286.875;
 
         return new Bot(x, y, 0.02, { r, g, b, alpha: 0.25 }, tickrate, "Bot");
     };
@@ -62,9 +127,9 @@ const initialize = (io) => {
 
     io.on("connect", (socket) => {
         console.log('New user has connected:', socket.id);
-        
+
         // Angles is the angle of their mouse relative to the center of their screen
-        socket.on("playerUpdate", ({ angle }) => {
+        socket.on("playerUpdate", ({ angle }) => { // send every 1000ms => { path, velocity, position, interactions: { pellets, players } }
             // Gets the exiting player data from an object stored on the server
             let player = players[socket.id];
 
@@ -84,7 +149,7 @@ const initialize = (io) => {
             const cartesian = Player.cartesian(angle, player.speed);
             player.velocity.x = cartesian.x;
             player.velocity.y = cartesian.y;
-            
+
             // if (Mouse.polar(player.velocity.x, player.velocity.y).magnitude < player.speed) {
             //     if (pressedKeys["a"]) {
             //         player.velocity.x -= 0.001;
@@ -131,7 +196,7 @@ const initialize = (io) => {
 
             // Making sure the robot doesn't leave the map in case its pathfinding breaks
             ["x", "y"].forEach((coordinate) => {
-                if (bot[coordinate] - bot.radius < 0 ) {
+                if (bot[coordinate] - bot.radius < 0) {
                     // This teleports the bot back within the bounds
                     bot[coordinate] = bot.radius;
                 } else if (bot[coordinate] + bot.radius > mapSize) {
@@ -171,7 +236,7 @@ const initialize = (io) => {
                 const distance = Math.sqrt((bot.x - pellet.x) ** 2 + (bot.y - pellet.y) ** 2);
                 if (distance <= pellet.radius + bot.radius) {
                     // causing the bot to eat the pellet
-                    if (bot.radius < 0.25) bot.radius += 0.00001; 
+                    if (bot.radius < 0.25) bot.radius += 0.00001;
                     pellet.radius -= 0.001;
                 }
             });
@@ -192,7 +257,7 @@ const initialize = (io) => {
 
             // Checks if the player is outside the bounds of the map
             ["x", "y"].forEach((coordinate) => {
-                if (player[coordinate] - player.radius < 0 ) {
+                if (player[coordinate] - player.radius < 0) {
                     // This teleports the player back within the bounds
                     player[coordinate] = player.radius;
                 } else if (player[coordinate] + player.radius > mapSize) {
@@ -229,7 +294,7 @@ const initialize = (io) => {
                 const distance = Math.sqrt((player.x - pellet.x) ** 2 + (player.y - pellet.y) ** 2);
                 if (distance <= pellet.radius + player.radius) {
                     // The if statement here is smaller than it is for eating player which prevents you from gaining size from pellets once you have hit a certain size
-                    if (player.radius < 0.25) player.radius += 0.0003; 
+                    if (player.radius < 0.25) player.radius += 0.0003;
                     pellet.radius -= 0.003;
                 }
             });
@@ -252,7 +317,7 @@ const initialize = (io) => {
                 delete players[Object.keys(players)[index]];
             }
         });
-    }, 1000/tickrate);
+    }, 1000 / tickrate);
 
     const sendInterval = setInterval(() => {
         // Sending the client the array of pellets so the client can draw them
@@ -263,7 +328,7 @@ const initialize = (io) => {
             // Minimal info just simplifies the player object to only contain visual info and the player's id in order to have cyber security and to not send too much data
             return player.minimalInfo;
         }));
-    }, 1000/sendrate);
+    }, 1000 / sendrate);
 }
 
 router.use("/*", (req, res, next) => {
