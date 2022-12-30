@@ -28,7 +28,7 @@ class Player extends PolarCoordinatedObject {
 
     // Gets how fast the player can go based off their radius
     get speed () {
-        return 0.9/this.baseSpeed - (this.radius/100);
+        return 0.3/this.baseSpeed - (this.radius/100);
     }
 
     // Simplifies the player object to only contain visual info and the player's id in order to have cyber security and to not send too much data

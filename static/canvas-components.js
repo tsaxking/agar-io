@@ -360,7 +360,7 @@ class Player extends GameCircle {
     }
 
     get speed () {
-        return 0.9/this.baseSpeed - (this.radius/100);
+        return 0.3/this.baseSpeed - (this.radius/100);
     }
 
     draw(canvas, scaleFactor) {

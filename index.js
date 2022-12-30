@@ -4,7 +4,7 @@ const router = new Router();
 // Getting Classes from other JS files
 const { Bot, Player, PolarCoordinatedObject } = require("./server-functions-and-classes/bot.js");
 const { Pellet } = require("./server-functions-and-classes/pellet.js");
-const tickrate = 60; // How many times per second this runs the interval that moves players and checks collision
+const tickrate = 10; // How many times per second this runs the interval that moves players and checks collision
 const sendrate = 1; // How many times per second the server sends info to the client
 
 
@@ -151,7 +151,6 @@ const initialize = (io) => {
             const cartesian = Player.cartesian(angle, player.speed);
             player.velocity.x = cartesian.x;
             player.velocity.y = cartesian.y;
-
             // if (Mouse.polar(player.velocity.x, player.velocity.y).magnitude < player.speed) {
             //     if (pressedKeys["a"]) {
             //         player.velocity.x -= 0.001;
