@@ -346,7 +346,7 @@ class Player extends GameCircle {
     }
     
     get text () {
-        return new TextComponent(this.x, this.y - this.radius, 100, "rgb(0, 0, 0)", 0.01, "Arial", this.username, true);
+        return new TextComponent(this.x, this.y /* - this.radius*/, 100, "rgb(0, 0, 0)", 0.01, "Arial", this.username, true);
     }
 
     // Finds the angle of this object relative to the orgin
@@ -360,12 +360,14 @@ class Player extends GameCircle {
     }
 
     get speed () {
-        return 0.3/this.baseSpeed - (this.radius/100);
+        return 0.1/this.baseSpeed - (this.radius/100);
     }
 
     draw(canvas, scaleFactor) {
         super.draw(canvas, scaleFactor);
 
-        this.text.draw(canvas, scaleFactor);
+        if (this.radius > 0.05) {
+            this.text.draw(canvas, scaleFactor);
+        }
     }
 }

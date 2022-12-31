@@ -15,7 +15,7 @@ class Bot extends Player {
      * @param {string} [username] The username of the player. Defaults to "Bot"
      */
     constructor(x, y, radius, color, tickrate, username = "Bot") {
-        super(x, y, radius, -1, color, tickrate, username);
+        super(x, y, radius, -1, color, tickrate*2, username);
     }
 
     /**

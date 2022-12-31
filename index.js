@@ -5,7 +5,7 @@ const router = new Router();
 const { Bot, Player, PolarCoordinatedObject } = require("./server-functions-and-classes/bot.js");
 const { Pellet } = require("./server-functions-and-classes/pellet.js");
 const tickrate = 10; // How many times per second this runs the interval that moves players and checks collision
-const sendrate = 1; // How many times per second the server sends info to the client
+const sendrate = 2; // How many times per second the server sends info to the client
 
 
 const tick = 8; // ms
@@ -124,14 +124,13 @@ const initialize = (io) => {
     let pellets = Array(30 * mapSize ** 2).fill().map(createPellet);
     let bots = Array(mapSize ** 2).fill().map(createBot);
 
-
     io.on("connect", (socket) => {
         console.log('New user has connected:', socket.id);
         
         socket.emit("staticInfo", ({ mapSize, baseSpeed: tickrate }));
 
         // Angles is the angle of their mouse relative to the center of their screen
-        socket.on("playerUpdate", ({ angle }) => { // send every 1000ms => { path, velocity, position, interactions: { pellets, players } }
+        socket.on("playerUpdate", ({ path }) => { // send every 1000ms => { path, velocity, position, interactions: { pellets, players } }
             // Gets the exiting player data from an object stored on the server
             let player = players[socket.id];
 
@@ -147,10 +146,14 @@ const initialize = (io) => {
                 player = players[socket.id];
             }
 
+            if (path && Array.isArray(path) && path.length) player.path = [...player.path, ...path];
+
             // Setting the player's velocity based of the angle given above
-            const cartesian = Player.cartesian(angle, player.speed);
-            player.velocity.x = cartesian.x;
-            player.velocity.y = cartesian.y;
+            // const cartesian = Player.cartesian(angle, player.speed);
+            // player.velocity.x = cartesian.x;
+            // player.velocity.y = cartesian.y;
+
+
             // if (Mouse.polar(player.velocity.x, player.velocity.y).magnitude < player.speed) {
             //     if (pressedKeys["a"]) {
             //         player.velocity.x -= 0.001;
@@ -192,127 +195,98 @@ const initialize = (io) => {
         });
     });
 
-    const interval = setInterval(() => {
+    function Interval(callback, time) {
+        this.stopped = false;
+        (async() => {
+            const sleep = async(ms) => new Promise((res) => setTimeout(res, ms));
+            const targetTime = time;
+            while (!this.stopped) {
+                await sleep(time);
+                const start = performance.now();
+                callback();
+                const end = performance.now();
+                time = (targetTime - (end - start));
+            }
+        })();
+        this.stop = () => this.stopped = true;
+    }
+
+    const botInterval = new Interval(() => {
         bots.forEach(bot => {
             // Causes the bot to change its velocity in order to move in the direction of a player or pellet
             bot.pathFind(pellets, Object.values(players));
 
-            // Moves the bot
-            bot.x += bot.velocity.x;
-            bot.y += bot.velocity.y;
+            bot.path.push(PolarCoordinatedObject.polar(bot.velocity.x, bot.velocity.y).angle);
+        });
 
-            // Making sure the robot doesn't leave the map in case its pathfinding breaks
-            ["x", "y"].forEach((coordinate) => {
-                if (bot[coordinate] - bot.radius < 0) {
-                    // This teleports the bot back within the bounds
-                    bot[coordinate] = bot.radius;
-                } else if (bot[coordinate] + bot.radius > mapSize) {
-                    // This teleports the bot back within the bounds
-                    bot[coordinate] = mapSize - bot.radius;
-                }
-            });
+    }, 1000 / tickrate);
 
-            // Checks if the bot can eat other bots or be eaten by other bots
-            bots.forEach(collidingBot => {
-                // Pythagorean theorem
-                const distance = Math.sqrt((bot.x - collidingBot.x) ** 2 + (bot.y - collidingBot.y) ** 2);
+    const sendInterval = new Interval(() => {
+        if (Object.values(players).length) console.log(Object.values(players)[0].path);
+        Object.values(players).concat(bots).forEach(player => {
+            // Checking that a player isn't cheating by moving more times then they are supposed to
+            if (player.path.length > 10) player.path = player.path.slice(player.path.length - 10);
+            player.potentialColliders = [];
 
-                if (distance <= collidingBot.radius + bot.radius) {
-                    // Figuring out which bot is bigger
-                    let [largerBot, smallerBot] = [undefined, undefined];
-                    if (collidingBot.radius > bot.radius) {
-                        largerBot = collidingBot;
-                        smallerBot = bot;
-                    } else if (collidingBot.radius < bot.radius) {
-                        largerBot = bot;
-                        smallerBot = collidingBot;
-                    }
-
-                    // Checking if their is a larger and smaller bot in case they are the same size.
-                    if (largerBot && smallerBot) {
-                        // causing the large bot to eat the smaller bot
-                        if (largerBot.radius < 0.25) largerBot.radius += 0.0001;
-                        smallerBot.radius -= 0.001;
-                    }
-                }
-            });
-
-            // Checks if the bot is eating any pellets
             pellets.forEach(pellet => {
-                // Pythagorean theorem
-                const distance = Math.sqrt((bot.x - pellet.x) ** 2 + (bot.y - pellet.y) ** 2);
-                if (distance <= pellet.radius + bot.radius) {
-                    // causing the bot to eat the pellet
-                    if (bot.radius < 0.25) bot.radius += 0.00001;
-                    pellet.radius -= 0.001;
-                }
+                if (findDistance(pellet, player) < player.speed * tickrate/sendrate + player.radius + pellet.radius) player.potentialColliders.push(pellet); 
+            });
+
+            Object.values(players).concat(bots).forEach(collidingPlayer => {
+                if (findDistance(collidingPlayer, player) < player.speed * tickrate/sendrate + collidingPlayer.speed * tickrate/sendrate + player.radius + collidingPlayer.radius) player.potentialColliders.push(collidingPlayer); 
             });
         });
 
-        Object.values(players).forEach(player => {
-            // Moves the player based of their velocity
-            player.x += player.velocity.x;
-            player.y += player.velocity.y;
-            // player.velocity.x -= Math.sign(player.velocity.x) * 0.0015;
-            // player.velocity.y -= Math.sign(player.velocity.y) * 0.0015;
-            // if (Math.abs(player.velocity.x) < 0.001) {
-            //     player.velocity.x = 0;
-            // }
-            // if (Math.abs(player.velocity.y) < 0.001) {
-            //     player.velocity.y = 0;
-            // }
+        // Slightly faster for loop
+        new Array(10).fill().forEach((_, i) => {
+            Object.values(players).concat(bots).forEach(player => {
+                if (!player.path[i]) return;
 
-            // Checks if the player is outside the bounds of the map
-            ["x", "y"].forEach((coordinate) => {
-                if (player[coordinate] - player.radius < 0) {
-                    // This teleports the player back within the bounds
-                    player[coordinate] = player.radius;
-                } else if (player[coordinate] + player.radius > mapSize) {
-                    // This teleports the player back within the bounds
-                    player[coordinate] = mapSize - player.radius;
-                }
-            });
+                const cartesian = Player.cartesian(player.path[i], player.speed);
+                player.x += cartesian.x;
+                player.y += cartesian.y;
 
-            // Checking if two players are colliding
-            Object.values(players).concat(bots).forEach(collidingPlayer => {
-                // Pythagorean theorem
-                const distance = Math.sqrt((player.x - collidingPlayer.x) ** 2 + (player.y - collidingPlayer.y) ** 2);
-                if (distance <= collidingPlayer.radius + player.radius) {
-                    // Figuring out which player or bot is bigger
-                    let [largerPlayer, smallerPlayer] = [undefined, undefined];
-                    if (collidingPlayer.radius > player.radius) {
-                        largerPlayer = collidingPlayer;
-                        smallerPlayer = player;
-                    } else if (collidingPlayer.radius < player.radius) {
-                        largerPlayer = player;
-                        smallerPlayer = collidingPlayer;
+                // Checks if the player is outside the bounds of the map
+                ["x", "y"].forEach((coordinate) => {
+                    if (player[coordinate] - player.radius < 0) {
+                        // This teleports the player back within the bounds
+                        player[coordinate] = player.radius;
+                    } else if (player[coordinate] + player.radius > mapSize) {
+                        // This teleports the player back within the bounds
+                        player[coordinate] = mapSize - player.radius;
                     }
-                    // Checking if their is a larger and smaller player in case they are the same size.
-                    if (largerPlayer && smallerPlayer) {
-                        if (largerPlayer.radius < 0.5) largerPlayer.radius += 0.001;
-                        smallerPlayer.radius -= 0.001;
+                });
+
+                player.potentialColliders.forEach(collider => {
+                    if (findDistance(collider, player) < player.radius + collider.radius) {
+                        if (Object.getPrototypeOf(collider).constructor == Player || Object.getPrototypeOf(collider).constructor == Bot) {
+                            // Figuring out which player or bot is bigger
+                            let [largerPlayer, smallerPlayer] = [undefined, undefined];
+                            if (collider.radius > player.radius) {
+                                largerPlayer = collider;
+                                smallerPlayer = player;
+                            } else if (collider.radius < player.radius) {
+                                largerPlayer = player;
+                                smallerPlayer = collider;
+                            }
+                            // Checking if their is a larger and smaller player in case they are the same size.
+                            if (largerPlayer && smallerPlayer) {                            
+                                if (player.radius < 0.25 && Object.getPrototypeOf(player).constructor == Bot) player.radius += 0.0001;
+                                if (player.radius < 0.5 && Object.getPrototypeOf(player).constructor == Player) player.radius += 0.001;
+                                
+                                smallerPlayer.radius -= 0.001;
+                            }
+                        } else {
+                            // The if statement here is smaller than it is for eating player which prevents you from gaining size from pellets once you have hit a certain size
+                            if (player.radius < 0.25 && Object.getPrototypeOf(player).constructor == Bot) player.radius += 0.0001;
+                            if (player.radius < 0.25 && Object.getPrototypeOf(player).constructor == Player) player.radius += 0.0003;
+                            collider.radius -= 0.003;
+                        }
+
+                        
                     }
-                }
+                });
             });
-
-            // Eating pellets
-            pellets.forEach(pellet => {
-                // Pythagorean theorem
-                const distance = Math.sqrt((player.x - pellet.x) ** 2 + (player.y - pellet.y) ** 2);
-                if (distance <= pellet.radius + player.radius) {
-                    // The if statement here is smaller than it is for eating player which prevents you from gaining size from pellets once you have hit a certain size
-                    if (player.radius < 0.25) player.radius += 0.0003;
-                    pellet.radius -= 0.003;
-                }
-            });
-
-            // removing any pellets or bots that have been eaten
-            pellets = pellets.filter(p => p.radius > 0);
-            bots = bots.filter(b => b.radius > 0);
-
-            // Filling the pellets and bots to their original size.
-            if (pellets.length < 20 * mapSize ** 2) pellets = [...Array(30 * mapSize ** 2 - pellets.length).fill().map(createPellet), ...pellets];
-            if (bots.length < mapSize ** 2) bots = [...Array(mapSize ** 2 - bots.length).fill().map(createBot), ...bots];
         });
 
         // Detecting if a player has died because they have a radius of 0 or less.
@@ -324,18 +298,62 @@ const initialize = (io) => {
                 delete players[Object.keys(players)[index]];
             }
         });
-    }, 1000 / tickrate);
 
-    const sendInterval = setInterval(() => {
-        // Sending the client the array of pellets so the client can draw them
-        io.emit("pelletsUpdate", pellets);
-        // Sending the client a list of bots and players.
-        // I am able to send them both because the Bot class is an extension of the Player class so any methods or properties of the Player class that the client need will also be methods or properties of the Bot class
-        io.emit("playersUpdate", Object.values(players).concat(bots).map(player => {
-            // Minimal info just simplifies the player object to only contain visual info and the player's id in order to have cyber security and to not send too much data
-            return player.minimalInfo;
-        }));
+        Object.keys(sockets).forEach(key => {
+            let socket = sockets[key];
+            let player = players[key];
+            // console.log(player);
+            if (!player) return;
+
+            player.path = [];
+
+            // Sending the client the array of pellets so the client can draw them
+            socket.emit("pelletsUpdate", pellets.filter(p => checkIfVisible(p, player, 0.25)));
+
+            // Sending the client a list of bots and players.
+            // I am able to send them both because the Bot class is an extension of the Player class so any methods or properties of the Player class that the client need will also be methods or properties of the Bot class
+            io.emit("playersUpdate", Object.values(players).concat(bots).filter(p => checkIfVisible(p, player, 0.5)).map(player => {
+                // Minimal info just simplifies the player object to only contain visual info and the player's id in order to have cyber security and to not send too much data
+                return player.minimalInfo;
+            }));
+        });
+
+        
     }, 1000 / sendrate);
+}
+
+/**
+ * Checks if an object can be seen by a player or if an object is within a certain distance of the player's view
+ * @param {Object} gameObject An object with an x y and radius
+ * @param {number} gameObject.x The x position of the game object
+ * @param {number} gameObject.y The y position of the game object
+ * @param {number} gameObject.radius The radius of the game object
+ * @param {Player} player The player who's visibility you are checking
+ * @param {number} [extraViewDistance] How much father away from the player's view you want to check to compensate for the player moving (defaults to 0)
+ * @returns {boolean}
+ */
+function checkIfVisible(gameObject, player, extraViewDistance = 0) {
+    if (!gameObject || !player) {
+        console.log("Player or game object isn't defined :", gameObject, player);
+        return false;
+}
+    const relativePos = { x: gameObject.x - player.x, y: gameObject.y - player.y };
+    
+    return (Math.abs(relativePos.x) - gameObject.radius <= 0.5 + extraViewDistance) && (Math.abs(relativePos.y) - gameObject.radius <= 0.5 + extraViewDistance);
+}
+
+/**
+ * Finds the distance between two objects with x and y values
+ * @param {Object} object1 An object
+ * @param {number} object1.x the object's x position
+ * @param {number} object1.y the object's y position
+ * @param {Object} object2 An object
+ * @param {number} object2.x the object's x position
+ * @param {number} object2.y the object's y position
+ * @returns {number}
+ */
+function findDistance(object1, object2) {
+    return Math.sqrt((object1.x - object2.x) ** 2 + (object1.y - object2.y) ** 2);
 }
 
 router.use("/*", (req, res, next) => {

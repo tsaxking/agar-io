@@ -82,8 +82,8 @@ class Page {
 let smallerWindowDimension = window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth;
 let largerWindowDimension = window.innerWidth > window.innerHeight ? window.innerWidth : window.innerHeight;
 const canvas = document.querySelector("#canvas");
-const minimap = document.querySelector("#minimap-canvas");
-let minimapComponents = [];
+// const minimap = document.querySelector("#minimap-canvas");
+// let minimapComponents = [];
 const canvasContainer = document.querySelector("#canvas-container");
 
 canvas.style.position = "absolute";
@@ -95,11 +95,11 @@ canvas.height = largerWindowDimension;
 canvas.style.left = window.innerWidth/2 - largerWindowDimension/2 + "px";
 canvas.style.top = window.innerHeight/2 - largerWindowDimension/2 + "px";
 
-minimap.width = largerWindowDimension/10;
-minimap.height = largerWindowDimension/10;
-minimap.style.left = window.innerWidth - largerWindowDimension/10 + "px";
-minimap.style.top = 0 + "px";
-minimap.style.position = "absolute";
+// minimap.width = largerWindowDimension/10;
+// minimap.height = largerWindowDimension/10;
+// minimap.style.left = window.innerWidth - largerWindowDimension/10 + "px";
+// minimap.style.top = 0 + "px";
+// minimap.style.position = "absolute";
 
 window.addEventListener("resize", () => {
     smallerWindowDimension = window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth;
@@ -110,15 +110,16 @@ window.addEventListener("resize", () => {
     canvas.style.left = window.innerWidth/2 - largerWindowDimension/2 + "px";
     canvas.style.top = window.innerHeight/2 - largerWindowDimension/2 + "px";
 
-    minimap.width = largerWindowDimension/10;
-    minimap.height = largerWindowDimension/10;
-    minimap.style.left = window.innerWidth - largerWindowDimension/10 + "px";
+    // minimap.width = largerWindowDimension/10;
+    // minimap.height = largerWindowDimension/10;
+    // minimap.style.left = window.innerWidth - largerWindowDimension/10 + "px";
 });
 
 const canvasBackground = new Grid(0, 0, -1000, 5, 5, "rgb(225, 225, 225)", false, 150);
-const minimapBackground = new Rect(0, 0, -999, 10, 10, "rgb(200, 200, 200)", false);
+// const minimapBackground = new Rect(0, 0, -999, 10, 10, "rgb(200, 200, 200)", false);
 
 const player = new Player(0.5, 0.5, 100, 0.01, "rgb(125, 125, 125)", 0.5, 0.5, { x:0, y:0 }, "", -1, baseSpeed);
+let path = [];
 
 const pages = {
     main: new Page ("main", [
@@ -130,7 +131,7 @@ const pages = {
         new Rect(0.5, 0.5, -100, canvas.width, canvas.height, "rgba(127, 127, 127, 0.5)", true)
     ], ["#sign-in", "#canvas-container"]),
     game: new Page ("game", [
-        player
+
     ], ["#canvas-container"])
 }
 
@@ -169,7 +170,7 @@ socket.on("pelletsUpdate", pellets => {
     receiveRate = 1000 * totalReceiveFrames/(Date.now() - receiveStart);
 
     pages["game"].components = [];
-    minimapComponents = [];
+    // minimapComponents = [];
     totalReceiveFrames ++;
     preventRedraw = true;    
 
@@ -178,8 +179,8 @@ socket.on("pelletsUpdate", pellets => {
         const newX = p.x - player.x;
         const newY = p.y - player.y;
 
-        minimapComponents.push(new GameCircle(newX + mapSize, newY + mapSize, 98, p.radius + 0.05, p.color, p.x, p.y));
-        if (newX + 0.5 < 0 || newX  + 0.5 > 1 - p.radius || newY + 0.5 > 1 + p.radius || newY + 0.5< 0) return;
+        // minimapComponents.push(new GameCircle(newX + mapSize, newY + mapSize, 98, p.radius + 0.05, p.color, p.x, p.y));
+        // if (newX + 0.5 < 0 || newX  + 0.5 > 1 - p.radius || newY + 0.5 > 1 + p.radius || newY + 0.5< 0) return;
         gameComponents.push(new GameCircle(newX + 0.5, newY + 0.5, 98, p.radius, p.color, p.x, p.y));
     });
 });
@@ -206,10 +207,10 @@ socket.on("playersUpdate", players => {
 
         
         // Ignore the minimap thing
-        minimapComponents.push(new Player(newX + mapSize, newY + mapSize, 99,  p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 0.75})`, p.x, p.y, p.velocity, p.username, p.id, refreshRate));
+        // minimapComponents.push(new Player(newX + mapSize, newY + mapSize, 99,  p.radius + 0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 0.75})`, p.x, p.y, p.velocity, p.username, p.id, refreshRate));
 
         // Removing all the players that aren't on your screen for performance reasons
-        if (newX + 0.5 < 0 || newX  + 0.5 > 1 - p.radius || newY + 0.5 > 1 + p.radius || newY + 0.5< 0) return;
+        // if (newX + 0.5 < 0 || newX  + 0.5 > 1 - p.radius || newY + 0.5 > 1 + p.radius || newY + 0.5< 0) return;
         // Creating a new instance of the circle class and adding it to game components
         // (99 is the z value)
         gameComponents.push(new Player(newX + 0.5, newY + 0.5, 99, p.radius, `rgb(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.alpha || 1})`, p.x, p.y, p.velocity, p.username, p.id, refreshRate));
@@ -219,7 +220,8 @@ socket.on("playersUpdate", players => {
     preventRedraw = false;
     if (currentPage.name == "game") {
         // Check movement checks if the player has moved their mouse which prevents the client from sending redundant info to the server.
-        if (mouse.checkMovement()) socket.emit("playerUpdate", { angle: mouse.angle });
+        socket.emit("playerUpdate", { path });
+        path = [];
     } 
 });
 
@@ -265,7 +267,7 @@ const interval = () => {
     console.log(refreshRate);
     if (!preventRedraw) {
         clearCanvas(canvas);
-        clearCanvas(minimap);
+        // clearCanvas(minimap);
         if (player && player.velocity) {
             if (mouse.moved) {
                 // console.log(player.speed);
@@ -342,33 +344,33 @@ const interval = () => {
             }
         });
 
-        minimapComponents.forEach(component => {
-            if (component.id === player.id) { 
-                component.actualX = player.x;
-                component.actualY = player.y;
-            }
+        // minimapComponents.forEach(component => {
+        //     if (component.id === player.id) { 
+        //         component.actualX = player.x;
+        //         component.actualY = player.y;
+        //     }
 
-            if (component.velocity) {
-                component.actualX += component.velocity.x;
-                component.actualY += component.velocity.y;
-            }
+        //     if (component.velocity) {
+        //         component.actualX += component.velocity.x;
+        //         component.actualY += component.velocity.y;
+        //     }
 
-            // TODO: use prototypes and stuff to do this
-            if (component.isGameComponent) {
-                // Checks if the player is outside the bounds of the map
-                ["actualX", "actualY"].forEach((coordinate) => {
-                    if (component[coordinate] - component.radius < 0 ) {
-                        // This teleports the player back within the bounds
-                        component[coordinate] = component.radius;
-                    } else if (component[coordinate] + component.radius > mapSize) {
-                        // This teleports the player back within the bounds
-                        component[coordinate] = mapSize - component.radius;
-                    }
-                });
+        //     // TODO: use prototypes and stuff to do this
+        //     if (component.isGameComponent) {
+        //         // Checks if the player is outside the bounds of the map
+        //         ["actualX", "actualY"].forEach((coordinate) => {
+        //             if (component[coordinate] - component.radius < 0 ) {
+        //                 // This teleports the player back within the bounds
+        //                 component[coordinate] = component.radius;
+        //             } else if (component[coordinate] + component.radius > mapSize) {
+        //                 // This teleports the player back within the bounds
+        //                 component[coordinate] = mapSize - component.radius;
+        //             }
+        //         });
 
-                component.updateCoordinates(player, mapSize);
-            }
-        });
+        //         component.updateCoordinates(player, mapSize);
+        //     }
+        // });
 
         canvasBackground.x = 0.5 - player.x;
         canvasBackground.y = 0.5 - player.y;
@@ -376,25 +378,43 @@ const interval = () => {
         canvasBackground.draw(canvas, largerWindowDimension);
         currentPage.draw(canvas, largerWindowDimension);
 
-        minimapBackground.draw(minimap, largerWindowDimension/100);
-        minimapComponents.forEach(c => {
-            c.draw(minimap, largerWindowDimension/100);
-        });
+        // // minimapBackground.draw(minimap, largerWindowDimension/100);
+        // minimapComponents.forEach(c => {
+        //     c.draw(minimap, largerWindowDimension/100);
+        // });
     }
     // requestAnimationFrame(interval);
     requestAnimationFrame(interval);
 }
 // interval();
 
+function Interval(callback, time) {
+    this.stopped = false;
+    (async() => {
+        const sleep = async(ms) => new Promise((res) => setTimeout(res, ms));
+        const targetTime = time;
+        while (!this.stopped) {
+            await sleep(time);
+            const start = performance.now();
+            callback();
+            const end = performance.now();
+            time = (targetTime - (end - start));
+        }
+    })();
+    this.stop = () => this.stopped = true;
+}
 // This code doesn't work
-const tickInterval = setInterval(() => {
+const tickInterval = new Interval(() => {
     totalFrames ++;
     refreshRate = 1000 * totalFrames/(Date.now() - start);
 
     if (!preventRedraw) {
         clearCanvas(canvas);
-        clearCanvas(minimap);
+        // clearCanvas(minimap);
         if (player && player.velocity) {
+
+            path.push(mouse.angle);
+
             if (mouse.moved) {
                 // console.log(player.speed);
 
@@ -466,48 +486,48 @@ const tickInterval = setInterval(() => {
                     }
                 });
 
-                component.updateCoordinates(player, 0.5);
+                component.updateCoordinates(player, 0.5);//*player.radius*50);
             }
         });
 
-        minimapComponents.forEach(component => {
-            if (component.id === player.id) { 
-                component.actualX = player.x;
-                component.actualY = player.y;
-            }
+        // minimapComponents.forEach(component => {
+        //     if (component.id === player.id) { 
+        //         component.actualX = player.x;
+        //         component.actualY = player.y;
+        //     }
 
-            if (component.velocity) {
-                component.actualX += component.velocity.x;
-                component.actualY += component.velocity.y;
-            }
+        //     if (component.velocity) {
+        //         component.actualX += component.velocity.x;
+        //         component.actualY += component.velocity.y;
+        //     }
 
-            // TODO: use prototypes and stuff to do this
-            if (component.isGameComponent) {
-                // Checks if the player is outside the bounds of the map
-                ["actualX", "actualY"].forEach((coordinate) => {
-                    if (component[coordinate] - component.radius < 0 ) {
-                        // This teleports the player back within the bounds
-                        component[coordinate] = component.radius;
-                    } else if (component[coordinate] + component.radius > mapSize) {
-                        // This teleports the player back within the bounds
-                        component[coordinate] = mapSize - component.radius;
-                    }
-                });
+        //     // TODO: use prototypes and stuff to do this
+        //     if (component.isGameComponent) {
+        //         // Checks if the player is outside the bounds of the map
+        //         ["actualX", "actualY"].forEach((coordinate) => {
+        //             if (component[coordinate] - component.radius < 0 ) {
+        //                 // This teleports the player back within the bounds
+        //                 component[coordinate] = component.radius;
+        //             } else if (component[coordinate] + component.radius > mapSize) {
+        //                 // This teleports the player back within the bounds
+        //                 component[coordinate] = mapSize - component.radius;
+        //             }
+        //         });
 
-                component.updateCoordinates(player, mapSize);
-            }
-        });
+        //         component.updateCoordinates(player, mapSize);
+        //     }
+        // });
 
         canvasBackground.x = 0.5 - player.x;
         canvasBackground.y = 0.5 - player.y;
 
-        canvasBackground.draw(canvas, largerWindowDimension);
-        currentPage.draw(canvas, largerWindowDimension);
+        canvasBackground.draw(canvas, largerWindowDimension);//*player.radius*50);
+        currentPage.draw(canvas, largerWindowDimension);//*player.radius*50);
 
-        minimapBackground.draw(minimap, largerWindowDimension/100);
-        minimapComponents.forEach(c => {
-            c.draw(minimap, largerWindowDimension/100);
-        });
+        // minimapBackground.draw(minimap, largerWindowDimension/100);
+        // minimapComponents.forEach(c => {
+        //     c.draw(minimap, largerWindowDimension/100);
+        // });
     }
     // requestAnimationFrame(interval);
 }, 1000/10);
