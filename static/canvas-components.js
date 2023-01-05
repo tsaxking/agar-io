@@ -85,22 +85,25 @@ class Grid extends Rect {
         ctx.strokeStyle = `rgb(0, 0, 0)`;
 
         for (let i = scaledX; i <= scaledX + scaleFactor * this.width; i += spacing) {
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(i, scaledY);
-            ctx.lineTo(i, scaledY + scaleFactor *this.width);
-            ctx.closePath();
-            ctx.stroke();
+            // ctx.lineWidth = 1;
+            // ctx.beginPath();
+            // ctx.moveTo(i, scaledY);
+            // ctx.lineTo(i, scaledY + scaleFactor *this.width);
+            // ctx.closePath();
+            // ctx.stroke();
+
+            for (let j = scaledY; j <= scaledY + scaleFactor * this.width; j += spacing) {
+                // ctx.lineWidth = 1;
+                // ctx.beginPath();
+                // ctx.moveTo(scaledX, i);
+                // ctx.lineTo(scaledX + scaleFactor * this.width, i);
+                // ctx.closePath();
+                // ctx.stroke();
+                new Circle(i, j, 10, spacing * 0.1, "rgba(200, 200, 200, 0.75)").draw(canvas, 1);
+            }
         }
 
-        for (let i = scaledY ; i <= scaledY + scaleFactor * this.width; i += spacing) {
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(scaledX, i);
-            ctx.lineTo(scaledX + scaleFactor * this.width, i);
-            ctx.closePath();
-            ctx.stroke();
-        }
+        
     }
 }
 
@@ -287,7 +290,7 @@ class Circle extends Component {
         // X and Y offset are to make the circle centered
         // ctx.arc(scaledX - scaledRadius/2, scaledY - scaledRadius/2, scaledRadius, 0, Math.PI * 2);
         if (scaledRadius < 0) {
-            console.error("circle radius less then 0: ", scaledRadius);
+            console.error("circle radius less then 0");//: ", scaledRadius);
             ctx.arc(scaledX, scaledY, 0, 0, Math.PI * 2);
         } else {
             ctx.arc(scaledX, scaledY, scaledRadius, 0, Math.PI * 2);
@@ -334,14 +337,16 @@ class Player extends GameCircle {
     }
 
 
-    constructor(x, y, z, radius, color, actualX, actualY, velocity, username) {
+    constructor(x, y, z, radius, color, actualX, actualY, velocity, username, id, baseSpeed) {
         super (x, y, z, radius, color, actualX, actualY);
         this.velocity = velocity;
         this.username = username;
+        this.id = id;
+        this.baseSpeed = baseSpeed;
     }
     
     get text () {
-        return new TextComponent(this.x, this.y - this.radius, 100, "rgb(0, 0, 0)", 0.01, "Arial", this.username, true);
+        return new TextComponent(this.x, this.y /* - this.radius*/, 100, "rgb(0, 0, 0)", 0.01, "Arial", this.username, true);
     }
 
     // Finds the angle of this object relative to the orgin
@@ -354,9 +359,15 @@ class Player extends GameCircle {
         return this.x/Math.cos(this.angle);
     }
 
+    get speed () {
+        return 0.1/this.baseSpeed - (this.radius/100);
+    }
+
     draw(canvas, scaleFactor) {
         super.draw(canvas, scaleFactor);
 
-        this.text.draw(canvas, scaleFactor);
+        if (this.radius > 0.05) {
+            this.text.draw(canvas, scaleFactor);
+        }
     }
 }

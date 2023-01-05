@@ -28,39 +28,33 @@
     <!-- Tempus Dominus Styles -->
     <link href="https://cdn.jsdelivr.net/gh/Eonasdan/tempus-dominus@master/dist/css/tempus-dominus.css" rel="stylesheet" crossorigin="anonymous">
 
-</head>
-
-<body>
-    <div id="sign-in" class="d-none">
-        <button id="username-button" class="btn btn-primary position-absolute">Change Username</button>
-        <div id="username-modal" class="modal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Sign In</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="text" name="Username" id="username-input">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary" id="set-username-button">Set Username</button>
+    <body>
+        <!-- Modal -->
+        <div id = "sign-in" class = "d-none"> 
+            <button id = "username-button" class="btn btn-primary position-absolute">Change Username</button>
+            <div id = "username-modal" class="modal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Sign In</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="text" name="Username" id="username-input">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" id = "set-username-button">Set Username</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div id="canvas-container" class="d-none">
-        <canvas id="canvas"></canvas>
-        <canvas id="minimap-canvas"></canvas>
+    <div id = "canvas-container" class="d-none">
+        <canvas id = "canvas"></canvas>
+        <!-- <canvas id = "minimap-canvas"></canvas> -->
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.min.js"></script>
-    <script src="../agar.io/static/canvas-components.js"></script>
-    <script src="../agar.io/static/mouse.js"></script>
-    <script src="../agar.io/static/pages.js"></script>
 
     <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
     <script src="https://cdn.datatables.net/v/dt/dt-1.11.5/datatables.min.js"></script>
