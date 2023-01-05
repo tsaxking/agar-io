@@ -126,7 +126,7 @@ const initialize = (io) => {
 
     io.on("connect", (socket) => {
         console.log('New user has connected:', socket.id);
-        
+
         socket.emit("staticInfo", ({ mapSize, baseSpeed: tickrate }));
 
         // Angles is the angle of their mouse relative to the center of their screen
@@ -181,7 +181,7 @@ const initialize = (io) => {
             } else {
                 socket.emit("usernameChangeResult", false);
             }
-            
+
         });
 
         // Triggers when a user leaves the page or reloads
@@ -202,9 +202,9 @@ const initialize = (io) => {
             const targetTime = time;
             while (!this.stopped) {
                 await sleep(time);
-                const start = performance.now();
+                const start = Date.now();
                 callback();
-                const end = performance.now();
+                const end = Date.now();
                 time = (targetTime - (end - start));
             }
         })();
@@ -229,11 +229,11 @@ const initialize = (io) => {
             player.potentialColliders = [];
 
             pellets.forEach(pellet => {
-                if (findDistance(pellet, player) < player.speed * tickrate/sendrate + player.radius + pellet.radius) player.potentialColliders.push(pellet); 
+                if (findDistance(pellet, player) < player.speed * tickrate / sendrate + player.radius + pellet.radius) player.potentialColliders.push(pellet);
             });
 
             Object.values(players).concat(bots).forEach(collidingPlayer => {
-                if (findDistance(collidingPlayer, player) < player.speed * tickrate/sendrate + collidingPlayer.speed * tickrate/sendrate + player.radius + collidingPlayer.radius) player.potentialColliders.push(collidingPlayer); 
+                if (findDistance(collidingPlayer, player) < player.speed * tickrate / sendrate + collidingPlayer.speed * tickrate / sendrate + player.radius + collidingPlayer.radius) player.potentialColliders.push(collidingPlayer);
             });
         });
 
@@ -270,10 +270,10 @@ const initialize = (io) => {
                                 smallerPlayer = collider;
                             }
                             // Checking if their is a larger and smaller player in case they are the same size.
-                            if (largerPlayer && smallerPlayer) {                            
+                            if (largerPlayer && smallerPlayer) {
                                 if (player.radius < 0.25 && Object.getPrototypeOf(player).constructor == Bot) player.radius += 0.0001;
                                 if (player.radius < 0.5 && Object.getPrototypeOf(player).constructor == Player) player.radius += 0.001;
-                                
+
                                 smallerPlayer.radius -= 0.001;
                             }
                         } else {
@@ -283,7 +283,7 @@ const initialize = (io) => {
                             collider.radius -= 0.003;
                         }
 
-                        
+
                     }
                 });
             });
@@ -318,7 +318,7 @@ const initialize = (io) => {
             }));
         });
 
-        
+
     }, 1000 / sendrate);
 }
 
@@ -336,9 +336,9 @@ function checkIfVisible(gameObject, player, extraViewDistance = 0) {
     if (!gameObject || !player) {
         console.log("Player or game object isn't defined :", gameObject, player);
         return false;
-}
+    }
     const relativePos = { x: gameObject.x - player.x, y: gameObject.y - player.y };
-    
+
     return (Math.abs(relativePos.x) - gameObject.radius <= 0.5 + extraViewDistance) && (Math.abs(relativePos.y) - gameObject.radius <= 0.5 + extraViewDistance);
 }
 
