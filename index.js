@@ -191,7 +191,7 @@ const initialize = (io) => {
             delete sockets[socket.id];
             delete usernames[socket.id];
 
-            io.emit("playerUpdate", Object.values(players));
+            io.emit("playerUpdate", Object.values(players).map(p => p.minimalInfo));
         });
     });
 
